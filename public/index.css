@@ -1,0 +1,66 @@
+﻿:root {
+  color-scheme: light;
+  font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #f6f7fb;
+  color: #0b1220;
+}
+
+.layout {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.toolbar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+#sj-address {
+  flex: 1;
+  min-width: 0;
+  padding: 0.7rem;
+  border: 1px solid #c6ccda;
+  border-radius: 8px;
+}
+
+button {
+  padding: 0.7rem 1rem;
+  border: 0;
+  border-radius: 8px;
+  background: #0b5fff;
+  color: #fff;
+  cursor: pointer;
+}
+
+.error {
+  color: #9e102f;
+  min-height: 1.2rem;
+  margin: 0.25rem 0;
+}
+
+.error-code {
+  color: #9e102f;
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+.frame-container {
+  border: 1px solid #d6d9e3;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+  height: calc(100vh - 200px);
+  min-height: 420px;
+}
+
+#sj-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}

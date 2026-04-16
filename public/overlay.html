@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="./assets/curser/curser.css">
+<title>Stratus AI Overlay</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+<style>
+html, body {
+  margin:0;
+  padding:0;
+  width:100%;
+  height:100%;
+  font-family:Segoe UI,Arial,sans-serif;
+  overflow:hidden;
+  background:#000;
+  color:white;
+  position:relative;
+}
+
+body::before {
+  content:"";
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:url("/assets/GUI/img/icon.png") center center no-repeat;
+  background-size:contain;
+  filter:blur(6px) brightness(0.7);
+  opacity:0.35;
+  z-index:0;
+}
+
+body::after {
+  content:"";
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:radial-gradient(circle, rgba(255,0,0,0.25), rgba(0,0,0,0.85));
+  z-index:0;
+}
+
+#overlay {
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  display:flex;
+  flex-direction:column;
+  z-index:1;
+  padding:0;
+  box-sizing:border-box;
+}
+
+#preview-area {
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding:10px;
+  flex:none;
+}
+
+#preview {
+  width:100%;
+  aspect-ratio:16/9;
+  border-radius:6px;
+  border:1px solid rgba(255,0,0,0.7);
+  object-fit:cover;
+}
+
+#toggleCapture {
+  padding:12px;
+  border-radius:12px;
+  border:1px solid rgba(255,0,0,0.7);
+  background:rgba(255,0,0,0.2);
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+  transition:.25s;
+  margin-top:4px;
+}
+#toggleCapture:hover {
+  background:#ff0000;
+  box-shadow:0 0 24px rgba(255,0,0,0.8);
+  transform:translateY(-1px);
+}
+
+#chat {
+  flex:1;
+  overflow-y:auto;
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  scroll-behavior:smooth;
+}
+
+.message {
+  max-width:70%;
+  padding:12px 14px;
+  border-radius:12px;
+  line-height:1.4;
+  font-size:14px;
+  background:rgba(0,0,0,0.35);
+  backdrop-filter:blur(10px);
+  white-space:pre-wrap;
+  animation:fadeIn .2s ease;
+}
+
+.user {
+  align-self:flex-end;
+  border:1px solid rgba(255,0,0,0.5);
+  box-shadow:0 0 8px rgba(255,0,0,0.3);
+}
+
+.ai {
+  align-self:flex-start;
+  border:1px solid rgba(255,0,0,0.7);
+  box-shadow:0 0 12px rgba(255,0,0,0.4);
+}
+
+#input-area {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:10px;
+  background:rgba(0,0,0,0.45);
+  backdrop-filter:blur(18px);
+  border-top:1px solid rgba(255,0,0,0.4);
+}
+
+#message {
+  flex:1;
+  background:transparent;
+  border:none;
+  color:white;
+  padding:10px;
+  outline:none;
+  font-size:14px;
+}
+
+#message::placeholder {
+  color:rgba(255,255,255,0.4);
+}
+
+#send {
+  width:40px;
+  height:40px;
+  border-radius:50%;
+  border:1px solid rgba(255,0,0,0.7);
+  background:rgba(255,0,0,0.2);
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:.25s;
+}
+#send:hover {
+  background:#ff0000;
+  box-shadow:0 0 20px rgba(255,0,0,0.7);
+  transform:translateY(-1px);
+}
+
+#send img {
+  width:18px;
+  height:18px;
+  object-fit:contain;
+  pointer-events:none;
+}
+
+@keyframes fadeIn {
+  from{opacity:0;transform:translateY(4px);}
+  to{opacity:1;}
+}
+</style>
+</head>
+<body>
+
+<div id="overlay">
+
+  <div id="preview-area">
+    <video id="preview" autoplay muted></video>
+    <button id="toggleCapture">Start Capture</button>
+  </div>
+
+  <div id="chat">
+    <div class="message ai">Hello! Ask questions about your screen.</div>
+  </div>
+
+  <div id="input-area">
+    <input id="message" placeholder="Ask something..." />
+    <button id="send">
+      <img src="./assets/icons/send.png" alt="Send">
+    </button>
+  </div>
+
+</div>
+
+<script>
+const MODEL="meta-llama/llama-4-scout-17b-16e-instruct";
+let API_KEY="";
+
+function decryptStep(str){
+    let reversed = str.split('').reverse().join('');
+    let unshifted = '';
+    for(let i=0;i<reversed.length;i++){
+        unshifted += String.fromCharCode(reversed.charCodeAt(i)-3);
+    }
+    return atob(unshifted);
+}
+
+function tripleDecrypt(str){
+    let decrypted = str;
+    for(let i=0;i<3;i++){
+        decrypted = decryptStep(decrypted);
+    }
+    return decrypted;
+}
+
+async function loadKey(){
+    try{
+        const res = await fetch("./assets/Files/Ai/key2.txt");
+        const encoded = (await res.text()).trim();
+        API_KEY = tripleDecrypt(encoded);
+    }catch(e){
+        console.error("Failed to load API key", e);
+    }
+}
+
+loadKey();
+
+const video=document.getElementById("preview");
+const toggleBtn=document.getElementById("toggleCapture");
+const chat=document.getElementById("chat");
+const input=document.getElementById("message");
+const send=document.getElementById("send");
+
+let stream=null;
+let capturing=false;
+let latestFrame=null;
+let latestText="";
+let messages=[{role:"system",content:"You are Stratus AI. Answer questions based on the live captured screen."}];
+
+toggleBtn.onclick=async()=>{
+  if(!capturing){
+    stream=await navigator.mediaDevices.getDisplayMedia({video:true});
+    video.srcObject=stream;
+    capturing=true;
+    toggleBtn.textContent="Stop Capture";
+    startCaptureLoop();
+  } else {
+    stream.getTracks().forEach(t=>t.stop());
+    capturing=false;
+    toggleBtn.textContent="Start Capture";
+  }
+};
+
+function captureFrame(){
+  const canvas=document.createElement("canvas");
+  canvas.width=video.videoWidth;
+  canvas.height=video.videoHeight;
+  canvas.getContext("2d").drawImage(video,0,0);
+  return canvas;
+}
+
+function startCaptureLoop(){
+  setInterval(async()=>{
+    if(!capturing||video.videoWidth===0) return;
+    const canvas=captureFrame();
+    latestFrame=canvas.toDataURL("image/jpeg",0.7);
+    try{
+      const result=await Tesseract.recognize(canvas,"eng");
+      latestText=result.data.text;
+    }catch{}
+  },3000);
+}
+
+async function sendMessage(){
+  if(!API_KEY){alert("API key not loaded yet!"); return;}
+  let text=input.value.trim();
+  if(!text) return;
+  input.value="";
+
+  const userBox=document.createElement("div");
+  userBox.className="message user";
+  userBox.textContent=text;
+  chat.appendChild(userBox);
+  chat.scrollTop=chat.scrollHeight;
+
+  messages.push({role:"user",content:text});
+
+  const aiBox=document.createElement("div");
+  aiBox.className="message ai";
+  chat.appendChild(aiBox);
+  chat.scrollTop=chat.scrollHeight;
+
+  try{
+    const res=await fetch("https://api.groq.com/openai/v1/chat/completions",{
+      method:"POST",
+      headers:{
+        "Authorization":"Bearer "+API_KEY,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        model:MODEL,
+        messages:[
+          ...messages,
+          {role:"user",content:`${text}\n\nScreen Text:\n${latestText}`},
+          {role:"user",content:[{type:"image_url",image_url:{url:latestFrame}}]}
+        ],
+        temperature:0.3
+      })
+    });
+
+    const data=await res.json();
+    const reply=data.choices[0].message.content||"";
+    aiBox.textContent=reply;
+    messages.push({role:"assistant",content:reply});
+    chat.scrollTop=chat.scrollHeight;
+  }catch{
+    aiBox.textContent="API error.";
+  }
+}
+
+send.onclick=sendMessage;
+input.addEventListener("keydown",e=>{
+  if(e.key==="Enter"&&!e.shiftKey){e.preventDefault(); sendMessage();}
+});
+</script>
+
+</body>
+</html>

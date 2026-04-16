@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game Frame</title>
+<link rel="stylesheet" href__="./assets/curser/curser.css">
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #0a0a0a;
+  color: white;
+  overflow: hidden;
+}
+
+/* LEFT SIDEBAR */
+.sidebar-left {
+  width: 60px;
+  min-width: 60px;
+  background: rgba(50, 0, 0, 0.5);
+  backdrop-filter: blur(15px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0;
+  border-right: 1px solid rgba(255, 0, 0, 0.15);
+}
+
+.back-btn,
+.control-btn {
+  width: 38px;
+  height: 38px;
+  cursor: pointer;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, transform 0.2s;
+  position: relative;
+}
+
+.back-btn:hover,
+.control-btn:hover {
+  background: rgba(255, 0, 0, 0.2);
+  transform: scale(1.1);
+}
+
+.back-btn img,
+.control-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Tooltip */
+.control-btn::after,
+.back-btn::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.control-btn:hover::after,
+.back-btn:hover::after {
+  opacity: 1;
+}
+
+/* RIGHT SIDEBAR */
+.sidebar-right {
+  width: 280px;
+  min-width: 280px;
+  background: rgba(60, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  padding: 15px;
+  overflow-y: auto;
+  gap: 16px;
+  transition: width 0.35s ease, min-width 0.35s ease, padding 0.35s ease, opacity 0.35s ease;
+  border-left: 1px solid rgba(255, 0, 0, 0.15);
+}
+
+.sidebar-right.hidden {
+  width: 0;
+  min-width: 0;
+  padding: 0;
+  opacity: 0;
+  overflow: hidden;
+  border-left: none;
+}
+
+/* CURRENT GAME */
+.current-game {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 15px;
+  background: rgba(180, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 0, 0, 0.3);
+}
+
+.current-game img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.current-game .name {
+  font-weight: 700;
+  font-size: 15px;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* SECTION LABEL */
+.section-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: rgba(255, 255, 255, 0.35);
+  font-weight: 600;
+  padding: 0 4px;
+}
+
+/* ADS */
+.ad-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.ad-container iframe {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border: none;
+  border-radius: 10px;
+  background: #111;
+}
+
+/* OTHER GAMES */
+.other-games {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  overflow: hidden;
+}
+
+.other-game {
+  position: relative;
+  aspect-ratio: 3 / 2;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  background: rgba(120, 0, 0, 0.2);
+  border: 1px solid rgba(255, 0, 0, 0.3);
+  transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+}
+
+.other-game:hover {
+  transform: scale(1.04);
+  border-color: #ff0000;
+  box-shadow: 0 0 12px rgba(255, 0, 0, 0.3);
+}
+
+.other-game img {
+  width: 100%;
+  height: auto;
+  flex: 1;
+  object-fit: cover;
+  border-bottom: 1px solid rgba(255, 0, 0, 0.2);
+}
+
+.other-game .name {
+  font-size: 11px;
+  text-align: center;
+  padding: 4px 4px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* IFRAME */
+.iframe-container {
+  flex: 1;
+  background: #080808;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.35s ease;
+}
+
+.iframe-container iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: black;
+}
+
+/* Keyboard hint */
+.keyboard-hint {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.2);
+  text-align: center;
+  padding: 4px 0;
+  letter-spacing: 0.5px;
+}
+</style>
+</head>
+<body>
+
+<!-- LEFT SIDEBAR -->
+<div class="sidebar-left">
+  <div class="back-btn" data-tooltip="Back (Esc)" onclick="goBack()">
+    <img src="./assets/icons/ba.png">
+  </div>
+
+  <div class="controls">
+    <div class="control-btn" data-tooltip="Toggle Sidebar (S)" onclick="toggleSplit()">
+      <img src="./assets/icons/ss.png">
+    </div>
+    <div class="control-btn" data-tooltip="Fullscreen (F)" onclick="goFullscreen()">
+      <img src="./assets/icons/fs.png">
+    </div>
+    <div class="control-btn" data-tooltip="Reload (R)" onclick="reloadFrame()">
+      <img src="./assets/icons/reload.png">
+    </div>
+  </div>
+
+  <div class="keyboard-hint">ESC / F / R / S</div>
+</div>
+
+<!-- IFRAME -->
+<div class="iframe-container" id="iframeContainer">
+  <iframe id="gameFrame" src="" allow="fullscreen"></iframe>
+</div>
+
+<!-- RIGHT SIDEBAR -->
+<div class="sidebar-right" id="rightSidebar">
+  <div class="current-game" id="currentGame">
+    <img id="currentIcon" src="">
+    <div class="name" id="currentName">Game Name</div>
+  </div>
+
+  <div class="ad-container">
+    <iframe src="./ads.html" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer"></iframe>
+    <iframe src="./ads.html" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer"></iframe>
+  </div>
+
+  <div class="section-label">More Games</div>
+  <div class="other-games" id="otherGames"></div>
+</div>
+
+<script>
+const API = "./assets/Files/Games/zones.json";
+let gamesData = [];
+const params = new URLSearchParams(window.location.search);
+let currentURL = params.get("ID") || "";
+
+function goBack() {
+  window.location.href = "g.html";
+}
+
+function toggleSplit() {
+  document.getElementById("rightSidebar").classList.toggle("hidden");
+}
+
+function goFullscreen() {
+  const elem = document.getElementById("iframeContainer");
+  if (document.fullscreenElement) {
+    document.exitFullscreen();
+  } else if (elem.requestFullscreen) {
+    elem.requestFullscreen();
+  }
+}
+
+function reloadFrame() {
+  const iframe = document.getElementById("gameFrame");
+  iframe.src = iframe.src;
+}
+
+// Keyboard shortcuts
+document.addEventListener("keydown", e => {
+  // Don't trigger if user is typing in an input
+  if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+
+  switch (e.key.toLowerCase()) {
+    case "escape":
+      goBack();
+      break;
+    case "f":
+      goFullscreen();
+      break;
+    case "r":
+      reloadFrame();
+      break;
+    case "s":
+      toggleSplit();
+      break;
+  }
+});
+
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+async function loadGames() {
+  const res = await fetch(API);
+  const data = await res.json();
+  gamesData = data.data;
+
+  if (!currentURL && gamesData.length) currentURL = gamesData[0].url;
+
+  setCurrentGame(currentURL);
+  populateOtherGames();
+}
+
+function setCurrentGame(url) {
+  const game = gamesData.find(g => g.url === url);
+  if (!game) return;
+
+  document.title = game.name + " — Game Frame";
+  document.getElementById("currentIcon").src = game.cover;
+  document.getElementById("currentName").textContent = game.name;
+  document.getElementById("gameFrame").src = url;
+}
+
+function populateOtherGames() {
+  const container = document.getElementById("otherGames");
+  container.innerHTML = "";
+
+  const otherGames = shuffle(gamesData.filter(g => g.url !== currentURL));
+
+  const sidebar = document.querySelector(".sidebar-right");
+  const currentHeight = document.getElementById("currentGame").offsetHeight + 140;
+  const availableHeight = sidebar.clientHeight - currentHeight;
+
+  const gameHeight = (sidebar.clientWidth / 2) * 2 / 3;
+  const maxRows = Math.floor(availableHeight / (gameHeight + 10));
+  const maxItems = Math.max(4, maxRows * 2);
+
+  const visibleGames = otherGames.slice(0, maxItems);
+
+  visibleGames.forEach(g => {
+    const div = document.createElement("div");
+    div.className = "other-game";
+    div.innerHTML = `<img src="${g.cover}" loading="lazy"><div class="name">${g.name}</div>`;
+    div.onclick = () => {
+      window.location.href = "g-frame.html?ID=" + encodeURIComponent(g.url);
+    };
+    container.appendChild(div);
+  });
+}
+
+loadGames();
+</script>
+
+</body>
+</html>

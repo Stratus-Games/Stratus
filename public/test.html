@@ -1,0 +1,55 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Scramjet Iframe</title>
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #000;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+  </style>
+
+</head>
+<body>
+
+  <iframe id="frame"></iframe>
+
+  <!-- REQUIRED -->
+
+  <script src="/config.js"></script>
+
+  <script type="module">
+    import { ensureScramjetReady } from "/scramjet-init.js";
+
+    async function start() {
+      try {
+        // 🔑 THIS is what your main file uses
+        await ensureScramjetReady();
+
+        const url = "https://player.videasy.net/movie/83533";
+
+        // match your encode logic (from your file)
+        const proxied = "/service/scramjet/" + encodeURIComponent(url);
+
+        document.getElementById("frame").src = proxied;
+      } catch (err) {
+        console.error("Scramjet failed:", err);
+      }
+    }
+
+    start();
+  </script>
+
+</body>
+</html>

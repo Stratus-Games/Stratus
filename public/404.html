@@ -1,0 +1,115 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>404!!</title>
+<style>
+    /* Basic font fallback */
+    body {
+        font-family: monospace, sans-serif;
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        background-color: #050505;
+        background-image:
+            radial-gradient(circle at 50% 50%, #05050580 0%, #050505 80%),
+            linear-gradient(#1b1b1b 1px, transparent 1px),
+            linear-gradient(to right, #1b1b1b 1px, #050505 1px);
+        background-size: 100% 100%, 20px 20px, 20px 20px;
+        color: #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+    }
+
+    ::selection {
+        background-color: #ff0000;
+        color: #fff;
+    }
+
+    .container {
+        text-align: center;
+        padding: 0 20px;
+        z-index: 1;
+        position: relative;
+    }
+
+    h1 {
+        font-size: 60px;
+        margin-bottom: 15px;
+        color: #ff0000;
+        text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
+        animation: glitch 1s infinite;
+    }
+
+    @keyframes glitch {
+        0% { text-shadow: 2px 2px #ff0000; }
+        25% { text-shadow: -2px -2px #fff; }
+        50% { text-shadow: 2px -2px #ff0000; }
+        75% { text-shadow: -2px 2px #fff; }
+        100% { text-shadow: 2px 2px #ff0000; }
+    }
+
+    p {
+        margin: 10px auto;
+        font-size: 13px;
+        color: #d1d1d1ef;
+        max-width: 350px;
+        line-height: 1.5;
+    }
+
+    hr {
+        border: 0.5px solid #ff0000a9;
+        width: 230px;
+        margin: 15px auto;
+    }
+
+    .grid {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background-image: linear-gradient(rgba(255,0,0,0.08) 1px, transparent 1px),
+                          linear-gradient(90deg, rgba(255,0,0,0.08) 1px, transparent 1px);
+        background-size: 20px 20px;
+        animation: moveGrid 15s linear infinite;
+        z-index: 0;
+    }
+
+    @keyframes moveGrid {
+        from { background-position: 0 0; }
+        to { background-position: 20px 20px; }
+    }
+
+</style>
+</head>
+
+<body>
+
+<div class="grid"></div>
+
+<div class="container" id="msgBox">
+    <h1>404</h1>
+    <p style="font-size: 14px; font-weight: bold; color: #ff5555; margin-top: -15px;">
+        This page does not exist! (╥﹏╥)
+    </p>
+    <hr>
+    <p>If you ended up here while trying to search something, please go back to the home page and do <strong>Ctrl + Shift + R</strong> a few times.</p>
+</div>
+
+<script>
+    if (window.top !== window.self) {
+        const box = document.getElementById('msgBox');
+        box.innerHTML = `
+            <p style="font-size: 14px; font-weight: bold; color: #ff8888; margin-top: 20px; max-width: 400px;">
+                One sec! Your content will be available very soon...
+            </p>
+            <hr>
+            <p>Why am I here? It’s due to some weird bug in the proxy that I’m still trying to figure out how to fix (╥﹏╥)</p>
+        `;
+    }
+</script>
+
+</body>
+</html>

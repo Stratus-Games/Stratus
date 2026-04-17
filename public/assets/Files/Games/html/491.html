@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hypper Drive 2 | Conker's Bad Fur Day</title>
+<base href="https://cdn.jsdelivr.net/gh/a456pur/seraph@main/storage/emulatorjs/">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+  html, body {
+    height: 100%;
+    margin: 0;
+    font-family: monospace;
+    font-weight: bold;
+    background: #000;
+    color: #fff;
+    overflow: hidden;
+  }
+
+  #error {
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #f33;
+    font-size: 16px;
+    text-align: center;
+    z-index: 1000;
+  }
+
+  #game {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+  }
+
+  /* Loading Overlay */
+  #loadingOverlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    background: #000;
+    z-index: 999;
+  }
+
+  #loadingContainer {
+    position: relative;
+    width: 260px;
+    height: 260px;
+  }
+
+  #loadingContainer img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 50%;
+    display: block;
+  }
+
+  #progressCircle {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    transform: rotate(-90deg);
+    pointer-events: none;
+  }
+
+  #progressCircle circle { fill: none; stroke-width: 12; stroke-linecap: round; }
+  #progressBackground { stroke: rgba(255,255,255,0.06); }
+  #progressForeground {
+    stroke: red;
+    stroke-dasharray: 565.48;
+    stroke-dashoffset: 565.48;
+    transition: stroke-dashoffset 0.15s linear;
+  }
+
+  #loadingText {
+    margin-top: 18px;
+    font-size: 16px;
+    color: #fff;
+  }
+</style>
+</head>
+<body>
+
+<div id="error"></div>
+<div id="game"></div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay">
+  <div id="loadingContainer">
+    <img src="https://raw.githubusercontent.com/GLITCHED-OVERRIDE/Hypper-Drive-2/refs/heads/main/H.D.2.png">
+    <svg id="progressCircle" viewBox="0 0 200 200">
+      <circle id="progressBackground" cx="100" cy="100" r="90"></circle>
+      <circle id="progressForeground" cx="100" cy="100" r="90"></circle>
+    </svg>
+  </div>
+  <div id="loadingText">Merging game files...</div>
+</div>
+
+<script>
+const partUrls = [
+  "https://raw.githubusercontent.com/GLITCHED-OVERRIDE/Glitched-Assets/main/Games/Large%20Assets/Conker's%20Bad%20Fur%20Day%20N64/Conker's%20Bad%20Fur%20Day.part.001",
+  "https://raw.githubusercontent.com/GLITCHED-OVERRIDE/Glitched-Assets/main/Games/Large%20Assets/Conker's%20Bad%20Fur%20Day%20N64/Conker's%20Bad%20Fur%20Day.part.002",
+  "https://raw.githubusercontent.com/GLITCHED-OVERRIDE/Glitched-Assets/main/Games/Large%20Assets/Conker's%20Bad%20Fur%20Day%20N64/Conker's%20Bad%20Fur%20Day.part.003"
+];
+
+const error = document.getElementById("error");
+const loadingOverlay = document.getElementById("loadingOverlay");
+const progressForeground = document.getElementById("progressForeground");
+
+async function fetchAndMerge(urls) {
+  let totalBytes = 0;
+  let loadedBytes = 0;
+
+  // First pass: get total size
+  for (const url of urls) {
+    const head = await fetch(url, { method: "HEAD" });
+    totalBytes += Number(head.headers.get("content-length")) || 0;
+  }
+
+  const chunks = [];
+
+  // Second pass: download & update progress
+  for (let i = 0; i < urls.length; i++) {
+    const res = await fetch(urls[i]);
+    if (!res.ok) throw new Error(`Failed to fetch part ${i+1}`);
+
+    const reader = res.body.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      chunks.push(value);
+      loadedBytes += value.length;
+
+      if (totalBytes) {
+        const progress = Math.min(1, loadedBytes / totalBytes);
+        progressForeground.style.strokeDashoffset = 565.48 * (1 - progress);
+      }
+    }
+  }
+
+  // Merge all parts
+  const totalLength = chunks.reduce((sum,c) => sum + c.length, 0);
+  const merged = new Uint8Array(totalLength);
+  let offset = 0;
+
+  for (const c of chunks) {
+    merged.set(c, offset);
+    offset += c.length;
+  }
+
+  return new Blob([merged]);
+}
+
+(async () => {
+  try {
+    const blob = await fetchAndMerge(partUrls);
+    const blobUrl = URL.createObjectURL(blob);
+
+    window.EJS_player = "#game";
+    window.EJS_gameName = "Hypper Drive 2 | Conker's Bad Fur Day";
+    window.EJS_gameUrl = blobUrl;
+    window.EJS_core = "n64";
+    window.EJS_pathtodata = "data/";
+    window.EJS_startOnLoaded = true;
+
+    const script = document.createElement("script");
+    script.src = "data/loader.js";
+
+    script.onerror = () => {
+      error.textContent = "Failed to load EmulatorJS core";
+      loadingOverlay.style.display = "none";
+    };
+
+    script.onload = () => {
+      loadingOverlay.style.transition = "opacity 300ms";
+      loadingOverlay.style.opacity = "0";
+      setTimeout(() => loadingOverlay.remove(), 350);
+    };
+
+    document.body.appendChild(script);
+
+  } catch (e) {
+    error.textContent = "Error: " + e.message;
+    loadingOverlay.style.display = "none";
+  }
+})();
+</script>
+</body>
+</html>

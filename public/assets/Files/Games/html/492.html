@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hypper Drive 2 | Cruis’n USA</title>
+<base href="https://cdn.jsdelivr.net/gh/a456pur/seraph@main/storage/emulatorjs/">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+  html, body {
+    height: 100%;
+    margin: 0;
+    font-family: monospace;
+    font-weight: bold;
+    background: #000;
+    color: #fff;
+    overflow: hidden;
+  }
+
+  #error {
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #f33;
+    font-size: 16px;
+    text-align: center;
+    z-index: 1000;
+  }
+
+  #game {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+  }
+
+  /* Loading Overlay */
+  #loadingOverlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    background: #000;
+    z-index: 999;
+  }
+
+  #loadingContainer {
+    position: relative;
+    width: 260px;
+    height: 260px;
+  }
+
+  #loadingContainer img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 50%;
+    display: block;
+  }
+
+  #progressCircle {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    transform: rotate(-90deg);
+    pointer-events: none;
+  }
+
+  #progressCircle circle { fill: none; stroke-width: 12; stroke-linecap: round; }
+  #progressBackground { stroke: rgba(255,255,255,0.06); }
+  #progressForeground {
+    stroke: red;
+    stroke-dasharray: 565.48;
+    stroke-dashoffset: 565.48;
+    transition: stroke-dashoffset 0.15s linear;
+  }
+
+  #loadingText {
+    margin-top: 18px;
+    font-size: 16px;
+    color: #fff;
+  }
+</style>
+</head>
+<body>
+
+<div id="error"></div>
+<div id="game"></div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay">
+  <div id="loadingContainer">
+    <img src="https://raw.githubusercontent.com/GLITCHED-OVERRIDE/Hypper-Drive-2/refs/heads/main/H.D.2.png">
+    <svg id="progressCircle" viewBox="0 0 200 200">
+      <circle id="progressBackground" cx="100" cy="100" r="90"></circle>
+      <circle id="progressForeground" cx="100" cy="100" r="90"></circle>
+    </svg>
+  </div>
+  <div id="loadingText">Loading game assets...</div>
+</div>
+
+<script>
+const romUrl = "https://raw.githubusercontent.com/GLITCHED-OVERRIDE/Glitched-Assets/main/Games/Large%20Assets/Cruis%27n%20USA%20N64/Cruis%27n%20USA.z64";
+
+const error = document.getElementById("error");
+const loadingOverlay = document.getElementById("loadingOverlay");
+const progressForeground = document.getElementById("progressForeground");
+
+(async () => {
+  try {
+    const res = await fetch(romUrl);
+    if (!res.ok) throw new Error("Failed to fetch ROM");
+
+    const reader = res.body.getReader();
+    const contentLength = +res.headers.get("content-length") || 0;
+    let received = 0;
+    const chunks = [];
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      chunks.push(value);
+      received += value.length;
+
+      if (contentLength) {
+        const progress = Math.min(1, received / contentLength);
+        progressForeground.style.strokeDashoffset = 565.48 * (1 - progress);
+      }
+    }
+
+    const romArray = new Uint8Array(received);
+    let offset = 0;
+    for (const c of chunks) {
+      romArray.set(c, offset);
+      offset += c.length;
+    }
+
+    const blob = new Blob([romArray]);
+    const blobUrl = URL.createObjectURL(blob);
+
+    window.EJS_player = "#game";
+    window.EJS_gameName = "Hypper Drive 2 | Cruis’n USA";
+    window.EJS_gameUrl = blobUrl;
+    window.EJS_core = "n64";
+    window.EJS_pathtodata = "data/";
+    window.EJS_startOnLoaded = true;
+
+    const script = document.createElement("script");
+    script.src = "data/loader.js";
+
+    script.onerror = () => {
+      error.textContent = "Failed to load EmulatorJS core";
+      loadingOverlay.style.display = "none";
+    };
+
+    script.onload = () => {
+      loadingOverlay.style.transition = "opacity 300ms";
+      loadingOverlay.style.opacity = "0";
+      setTimeout(() => loadingOverlay.remove(), 350);
+    };
+
+    document.body.appendChild(script);
+
+  } catch (e) {
+    error.textContent = "Error: " + e.message;
+    loadingOverlay.style.display = "none";
+  }
+})();
+</script>
+</body>
+</html>

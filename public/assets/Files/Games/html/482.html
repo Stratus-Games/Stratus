@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hypper Drive 2 | Banjo Tooie</title>
+<base href="https://cdn.jsdelivr.net/gh/a456pur/seraph@main/storage/emulatorjs/">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html, body {
+    height: 100%;
+    margin: 0;
+    font-family: monospace;
+    font-weight: bold;
+    background: #000; /* black background */
+    color: #fff;
+    overflow: hidden;
+  }
+
+  #error {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #f33;
+    font-size: 18px;
+    text-align: center;
+    z-index: 1000;
+  }
+
+  #game {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+  }
+
+  /* Loading overlay */
+  #loadingOverlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #000;
+    z-index: 999;
+    flex-direction: column;
+  }
+
+  #loadingContainer {
+    position: relative;
+    width: 220px;
+    height: 220px;
+  }
+
+  #loadingContainer img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 50%;
+    display: block;
+  }
+
+  /* Circular progress bar */
+  #progressCircle {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+  }
+
+  #progressCircle circle {
+    fill: none;
+    stroke-width: 10;
+    stroke-linecap: round;
+  }
+
+  #progressBackground {
+    stroke: rgba(255,255,255,0.1);
+  }
+
+  #progressForeground {
+    stroke: red; /* red progress bar */
+    stroke-dasharray: 565.48;
+    stroke-dashoffset: 565.48;
+    transition: stroke-dashoffset 0.2s linear;
+  }
+
+  #loadingText {
+    margin-top: 20px;
+    font-size: 18px;
+    color: #fff;
+  }
+</style>
+</head>
+<body>
+<div id="error"></div>
+<div id="game"></div>
+
+<div id="loadingOverlay">
+  <div id="loadingContainer">
+    <img src="https://raw.githubusercontent.com/GLITCHED-OVERRIDE/Hypper-Drive-2/refs/heads/main/H.D.2.png" alt="Loading">
+    <svg id="progressCircle" viewBox="0 0 200 200">
+      <circle id="progressBackground" cx="100" cy="100" r="90"></circle>
+      <circle id="progressForeground" cx="100" cy="100" r="90"></circle>
+    </svg>
+  </div>
+  <div id="loadingText">Loading game assets...</div>
+</div>
+
+<script>
+const partUrls = [
+  "https://raw.githubusercontent.com/GLITCHED-OVERRIDE/Glitched-Assets/main/Games/Large%20Assets/Banjo%20Tooie%20N64/Banjo-Tooie.part.001",
+  "https://raw.githubusercontent.com/GLITCHED-OVERRIDE/Glitched-Assets/main/Games/Large%20Assets/Banjo%20Tooie%20N64/Banjo-Tooie.part.002"
+];
+
+const error = document.getElementById("error");
+const loadingOverlay = document.getElementById("loadingOverlay");
+const progressForeground = document.getElementById("progressForeground");
+
+async function fetchAndMerge(urls) {
+  const parts = [];
+  let totalLength = 0;
+
+  for (let i = 0; i < urls.length; i++) {
+    const res = await fetch(urls[i]);
+    if (!res.ok) throw new Error(`Failed to fetch part ${i+1}`);
+    const reader = res.body.getReader();
+    const contentLength = +res.headers.get('content-length') || 0;
+    let receivedLength = 0;
+    const chunkList = [];
+
+    while(true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      chunkList.push(value);
+      receivedLength += value.length;
+
+      // Update progress for this part
+      const partProgress = (totalLength + receivedLength) / (totalLength + contentLength);
+      progressForeground.style.strokeDashoffset = 565.48 * (1 - partProgress);
+    }
+
+    const partArray = new Uint8Array(receivedLength);
+    let offset = 0;
+    for (const chunk of chunkList) {
+      partArray.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    parts.push(partArray);
+    totalLength += receivedLength;
+  }
+
+  const merged = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const p of parts) {
+    merged.set(p, offset);
+    offset += p.length;
+  }
+
+  return new Blob([merged]);
+}
+
+(async () => {
+  try {
+    const blob = await fetchAndMerge(partUrls);
+    const blobUrl = URL.createObjectURL(blob);
+
+    window.EJS_player = "#game";
+    window.EJS_gameName = "Hypper Drive 2 | Banjo‑Tooie";
+    window.EJS_gameUrl = blobUrl;
+    window.EJS_core = "n64";
+    window.EJS_pathtodata = "data/";
+    window.EJS_startOnLoaded = true;
+
+    const script = document.createElement("script");
+    script.src = "data/loader.js";
+    script.onerror = () => error.textContent = "Failed to load EmulatorJS core";
+    script.onload = () => loadingOverlay.style.display = "none";
+    document.body.appendChild(script);
+  } catch (e) {
+    error.textContent = "Error: " + e.message;
+    loadingOverlay.style.display = "none";
+    console.error(e);
+  }
+})();
+</script>
+</body>
+</html>

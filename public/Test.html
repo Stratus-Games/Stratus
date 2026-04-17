@@ -1,0 +1,25 @@
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Scramjet Proxy Browser</title>
+    <link rel="stylesheet" href="/index.css" />
+  </head>
+  <body>
+    <main class="layout">
+      <h1>Scramjet Proxy Browser</h1>
+      <form id="sj-form" class="toolbar">
+        <input id="sj-address" type="text" placeholder="Enter URL or search term" autocomplete="off" />
+        <button type="submit">Open</button>
+      </form>
+      <p id="sj-error" class="error"></p>
+      <pre id="sj-error-code" class="error-code"></pre>
+      <section id="frame-container" class="frame-container"></section>
+    </main>
+
+    <script src="/config.js"></script>
+    <script type="module" src="/index.js"></script>
+  </body>
+</html>

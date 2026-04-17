@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hypper Drive 2 | Ace Combat 2 (USA)</title>
+
+<base href="https://cdn.jsdelivr.net/gh/a456pur/seraph@main/storage/emulatorjs/">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+html, body {
+  height: 100%;
+  margin: 0;
+  background: #000;
+  font-family: monospace;
+  font-weight: bold;
+  overflow: hidden;
+  color: #fff;
+}
+
+#error {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #f33;
+  z-index: 1000;
+}
+
+#game {
+  position: absolute;
+  inset: 0;
+  background: #000;
+}
+
+/* ===== Loader (UNCHANGED STYLE) ===== */
+#loading {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  z-index: 999;
+}
+
+#logoWrap {
+  position: relative;
+  width: 260px;
+  height: 260px;
+}
+
+#logoWrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+svg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+
+circle {
+  fill: none;
+  stroke-width: 12;
+  stroke-linecap: round;
+}
+
+#bg {
+  stroke: rgba(255,255,255,0.08);
+}
+
+#fg {
+  stroke: red;
+  stroke-dasharray: 565.48;
+  stroke-dashoffset: 565.48;
+  transition: stroke-dashoffset 0.12s linear;
+}
+
+#text {
+  margin-top: 18px;
+  font-size: 15px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="error"></div>
+<div id="game"></div>
+
+<div id="loading">
+  <div id="logoWrap">
+    <img src="https://raw.githubusercontent.com/GLITCHED-OVERRIDE/Hypper-Drive-2/main/H.D.2.png">
+    <svg viewBox="0 0 200 200">
+      <circle id="bg" cx="100" cy="100" r="90"></circle>
+      <circle id="fg" cx="100" cy="100" r="90"></circle>
+    </svg>
+  </div>
+  <div id="text">Loading Ace Combat 2 (USA)…</div>
+</div>
+
+<script>
+const partUrls = (() => {
+  const base =
+    "https://cdn.jsdelivr.net/gh/GLITCHED-OVERRIDE/Hypper-Drive-2@main/Games/Files/Source/PS1/Ace Combat 2/Ace Combat 2 (USA).chd";
+  const parts = [];
+  for (let i = 1; i <= 17; i++) {
+    parts.push(base + ".part" + String(i).padStart(2, "0"));
+  }
+  return parts;
+})();
+
+const fg = document.getElementById("fg");
+const loading = document.getElementById("loading");
+const error = document.getElementById("error");
+
+async function fetchWithProgress(urls) {
+  let received = 0;
+  const chunks = [];
+
+  for (let i = 0; i < urls.length; i++) {
+    const res = await fetch(urls[i]);
+    if (!res.ok) throw new Error("Failed to fetch part " + (i + 1));
+    const buf = new Uint8Array(await res.arrayBuffer());
+    chunks.push(buf);
+    received++;
+
+    fg.style.strokeDashoffset = 565.48 * (1 - received / urls.length);
+  }
+
+  const size = chunks.reduce((s, c) => s + c.length, 0);
+  const merged = new Uint8Array(size);
+  let offset = 0;
+  for (const c of chunks) {
+    merged.set(c, offset);
+    offset += c.length;
+  }
+
+  return new Blob([merged]);
+}
+
+(async () => {
+  try {
+    const blob = await fetchWithProgress(partUrls);
+    const blobUrl = URL.createObjectURL(blob);
+
+    window.EJS_player = "#game";
+    window.EJS_core = "psx";
+    window.EJS_gameName = "Ace Combat 2 (USA)";
+    window.EJS_gameUrl = blobUrl;
+    window.EJS_biosUrl =
+      "https://cdn.jsdelivr.net/gh/GLITCHED-OVERRIDE/Hypper-Drive-2@main/Games/Files/Source/PS1/scph5501.bin";
+    window.EJS_pathtodata =
+      "https://cdn.jsdelivr.net/gh/genizy/emu@master/";
+    window.EJS_startOnLoaded = true;
+
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/gh/genizy/emu@master/loader.js";
+    s.onload = () => {
+      loading.style.opacity = "0";
+      loading.style.transition = "opacity 300ms";
+      setTimeout(() => loading.remove(), 350);
+    };
+    s.onerror = () => error.textContent = "Failed to load EmulatorJS core";
+    document.body.appendChild(s);
+
+  } catch (e) {
+    error.textContent = "Error: " + e.message;
+    loading.remove();
+    console.error(e);
+  }
+})();
+</script>
+
+</body>
+  </html>

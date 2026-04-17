@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
+<base href="https://cdn.jsdelivr.net/gh/NOTAHACKER9999/My-Ports@main/Its Outside/">
+<title>Its Outside</title>
+
+<style>
+html, body, #canvas {
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+body {
+	color: white;
+	background-color: black;
+	overflow: hidden;
+	touch-action: none;
+}
+#canvas { display: block; }
+#canvas:focus { outline: none; }
+
+#status, #status-splash, #status-progress {
+	position: absolute;
+	left: 0;
+	right: 0;
+}
+#status, #status-splash {
+	top: 0;
+	bottom: 0;
+}
+#status {
+	background-color: #0a0a0a;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	visibility: hidden;
+}
+#status-splash {
+	max-height: 100%;
+	max-width: 100%;
+	margin: auto;
+}
+#status-progress { bottom: 10%; width: 50%; margin: 0 auto; }
+#status-notice {
+	background-color: #5b3943;
+	border-radius: 0.5rem;
+	border: 1px solid #9b3943;
+	color: #e0e0e0;
+	font-family: Arial, sans-serif;
+	padding: 1rem;
+	text-align: center;
+}
+</style>
+
+<link rel="icon" type="image/png" href="index.icon.png" />
+<link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
+
+</head>
+
+<body>
+<canvas id="canvas"></canvas>
+
+<noscript>Your browser does not support JavaScript.</noscript>
+
+<div id="status">
+	<img id="status-splash" src="index.png">
+	<progress id="status-progress"></progress>
+	<div id="status-notice"></div>
+</div>
+
+<script src="index.js"></script>
+
+<script>
+const GODOT_CONFIG = {
+	args: [],
+	canvasResizePolicy: 2,
+	emscriptenPoolSize: 8,
+	ensureCrossOriginIsolationHeaders: true,
+	executable: "index",
+	experimentalVK: false,
+	fileSizes: {
+		"index.pck": 7293092,
+		"index.wasm": 37685705
+	},
+	focusCanvas: true,
+	gdextensionLibs: [],
+	godotPoolSize: 4
+};
+
+const GODOT_THREADS_ENABLED = false;
+
+/* =========================
+   WASM MERGE IN MEMORY
+========================= */
+
+async function loadMergedWasm() {
+	const [p1, p2] = await Promise.all([
+		fetch("index.wasm.part1").then(r => r.arrayBuffer()),
+		fetch("index.wasm.part2").then(r => r.arrayBuffer())
+	]);
+
+	const merged = new Uint8Array(p1.byteLength + p2.byteLength);
+	merged.set(new Uint8Array(p1), 0);
+	merged.set(new Uint8Array(p2), p1.byteLength);
+
+	return merged;
+}
+
+/* Override fetch so Godot loads merged WASM */
+const originalFetch = window.fetch;
+window.fetch = async function(resource, options) {
+	if (typeof resource === "string" && resource.endsWith("index.wasm")) {
+		const merged = await loadMergedWasm();
+		return new Response(merged, {
+			headers: { "Content-Type": "application/wasm" }
+		});
+	}
+	return originalFetch(resource, options);
+};
+
+/* =========================
+   ENGINE START
+========================= */
+
+const engine = new Engine(GODOT_CONFIG);
+
+(function () {
+	const statusOverlay = document.getElementById('status');
+	const statusProgress = document.getElementById('status-progress');
+	const statusNotice = document.getElementById('status-notice');
+
+	let initializing = true;
+	let statusMode = '';
+
+	function setStatusMode(mode) {
+		if (statusMode === mode || !initializing) return;
+
+		if (mode === 'hidden') {
+			statusOverlay.remove();
+			initializing = false;
+			return;
+		}
+
+		statusOverlay.style.visibility = 'visible';
+		statusProgress.style.display = mode === 'progress' ? 'block' : 'none';
+		statusNotice.style.display = mode === 'notice' ? 'block' : 'none';
+		statusMode = mode;
+	}
+
+	function setStatusNotice(text) {
+		statusNotice.innerHTML = text.replace(/\n/g, "<br>");
+	}
+
+	function displayFailureNotice(err) {
+		console.error(err);
+		setStatusNotice(err?.message || err || "Unknown error");
+		setStatusMode('notice');
+		initializing = false;
+	}
+
+	const missing = Engine.getMissingFeatures({
+		threads: GODOT_THREADS_ENABLED,
+	});
+
+	if (missing.length !== 0) {
+		displayFailureNotice(
+			"Missing features:\n" + missing.join("\n")
+		);
+	} else {
+		setStatusMode('progress');
+
+		engine.startGame({
+			onProgress: function (current, total) {
+				if (current > 0 && total > 0) {
+					statusProgress.value = current;
+					statusProgress.max = total;
+				} else {
+					statusProgress.removeAttribute('value');
+					statusProgress.removeAttribute('max');
+				}
+			},
+		}).then(() => {
+			setStatusMode('hidden');
+		}, displayFailureNotice);
+	}
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,183 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hypper-Drive-2 | Cool Boarders</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+html, body {
+  height: 100%;
+  margin: 0;
+  background: #000;
+  font-family: monospace;
+  font-weight: bold;
+  overflow: hidden;
+  color: #fff;
+}
+
+#error {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #f33;
+  z-index: 1000;
+}
+
+#game {
+  position: absolute;
+  inset: 0;
+  background: #000;
+}
+
+/* ===== Hypper-Drive-2 Loader ===== */
+#loading {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  z-index: 999;
+}
+
+#logoWrap {
+  position: relative;
+  width: 260px;
+  height: 260px;
+}
+
+#logoWrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+svg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+
+circle {
+  fill: none;
+  stroke-width: 12;
+  stroke-linecap: round;
+}
+
+#bg {
+  stroke: rgba(255,255,255,0.08);
+}
+
+#fg {
+  stroke: red;
+  stroke-dasharray: 565.48;
+  stroke-dashoffset: 565.48;
+  transition: stroke-dashoffset 0.12s linear;
+}
+
+#text {
+  margin-top: 18px;
+  font-size: 15px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="error"></div>
+<div id="game"></div>
+
+<div id="loading">
+  <div id="logoWrap">
+    <img src="https://raw.githubusercontent.com/GLITCHED-OVERRIDE/Hypper-Drive-2/main/H.D.2.png">
+    <svg viewBox="0 0 200 200">
+      <circle id="bg" cx="100" cy="100" r="90"></circle>
+      <circle id="fg" cx="100" cy="100" r="90"></circle>
+    </svg>
+  </div>
+  <div id="text">Loading Cool Boarders…</div>
+</div>
+
+<script>
+/* ===== ZIP PARTS (001 → 013) ===== */
+const partUrls = (() => {
+  const base =
+    "https://raw.githubusercontent.com/GLITCHED-OVERRIDE/Hypper-Drive-2/main/Games/Files/Source/PS1/Cool%20Boarders/Cool%20Boarders.zip";
+
+  const parts = [];
+  for (let i = 1; i <= 13; i++) {
+    const num = String(i).padStart(3, "0"); // FIXED (.010 works)
+    parts.push(`${base}.${num}`);
+  }
+  return parts;
+})();
+
+const fg = document.getElementById("fg");
+const loading = document.getElementById("loading");
+const error = document.getElementById("error");
+
+/* ===== FETCH + MERGE ZIP (NO UNZIP) ===== */
+async function fetchAndMerge(urls) {
+  const chunks = [];
+
+  for (let i = 0; i < urls.length; i++) {
+    const res = await fetch(urls[i]);
+    if (!res.ok) throw new Error("Failed part " + (i + 1));
+
+    chunks.push(new Uint8Array(await res.arrayBuffer()));
+    fg.style.strokeDashoffset = 565.48 * (1 - (i + 1) / urls.length);
+  }
+
+  const size = chunks.reduce((s, c) => s + c.length, 0);
+  const merged = new Uint8Array(size);
+
+  let offset = 0;
+  for (const c of chunks) {
+    merged.set(c, offset);
+    offset += c.length;
+  }
+
+  return new Blob([merged], { type: "application/zip" });
+}
+
+(async () => {
+  try {
+    const zipBlob = await fetchAndMerge(partUrls);
+    const zipUrl = URL.createObjectURL(zipBlob);
+
+    /* ===== EmulatorJS CONFIG ===== */
+    window.EJS_player = "#game";
+    window.EJS_core = "psx";
+    window.EJS_gameName = "Cool Boarders";
+    window.EJS_gameUrl = zipUrl;
+    window.EJS_biosUrl =
+      "https://cdn.jsdelivr.net/gh/GLITCHED-OVERRIDE/Hypper-Drive-2@main/Games/Files/Source/PS1/scph5501.bin";
+    window.EJS_pathtodata =
+      "https://cdn.jsdelivr.net/gh/genizy/emu@master/";
+    window.EJS_startOnLoaded = true;
+
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/gh/genizy/emu@master/loader.js";
+    script.onload = () => {
+      loading.style.opacity = "0";
+      loading.style.transition = "opacity 300ms";
+      setTimeout(() => loading.remove(), 350);
+    };
+    script.onerror = () => error.textContent = "Failed to load EmulatorJS";
+
+    document.body.appendChild(script);
+
+  } catch (e) {
+    error.textContent = "Error: " + e.message;
+    loading.remove();
+    console.error(e);
+  }
+})();
+</script>
+
+</body>
+  </html>

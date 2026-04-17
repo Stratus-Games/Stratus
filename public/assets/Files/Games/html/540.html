@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hypper Drive 2 | Animal Crossing: Wild World</title>
+<base href="https://cdn.jsdelivr.net/gh/a456pur/seraph@main/storage/emulatorjs/">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+html, body {
+  height: 100%;
+  margin: 0;
+  background: #000;
+  font-family: monospace;
+  font-weight: bold;
+  overflow: hidden;
+  color: #fff;
+}
+
+#error {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #f33;
+  z-index: 1000;
+}
+
+#game {
+  position: absolute;
+  inset: 0;
+  background: #000;
+}
+
+/* ===== Loader ===== */
+#loading {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  z-index: 999;
+}
+
+#logoWrap {
+  position: relative;
+  width: 260px;
+  height: 260px;
+}
+
+#logoWrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+svg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+
+circle {
+  fill: none;
+  stroke-width: 12;
+  stroke-linecap: round;
+}
+
+#bg {
+  stroke: rgba(255,255,255,0.08);
+}
+
+#fg {
+  stroke: red;
+  stroke-dasharray: 565.48;
+  stroke-dashoffset: 565.48;
+  transition: stroke-dashoffset 0.12s linear;
+}
+
+#text {
+  margin-top: 18px;
+  font-size: 15px;
+  text-align: center;
+}
+</style>
+</head>
+
+<body>
+
+<div id="error"></div>
+<div id="game"></div>
+
+<div id="loading">
+  <div id="logoWrap">
+    <img src="https://raw.githubusercontent.com/GLITCHED-OVERRIDE/Hypper-Drive-2/main/H.D.2.png">
+    <svg viewBox="0 0 200 200">
+      <circle id="bg" cx="100" cy="100" r="90"></circle>
+      <circle id="fg" cx="100" cy="100" r="90"></circle>
+    </svg>
+  </div>
+  <div id="text">Loading Animal Crossing: Wild World…</div>
+</div>
+
+<script>
+const romUrl =
+  "https://raw.githubusercontent.com/GLITCHED-OVERRIDE/Glitched-Assets/main/Games/Large%20Assets/Animal%20Crossing%3A%20Wild%20World%20NDS/Animal%20Crossing%20-%20Wild%20World%20(USA)%20(Rev%201).nds.zip";
+
+const fg = document.getElementById("fg");
+const loading = document.getElementById("loading");
+const error = document.getElementById("error");
+
+async function fetchWithProgress(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Failed to fetch ROM");
+
+  const total = Number(res.headers.get("content-length")) || 0;
+  const reader = res.body.getReader();
+  const chunks = [];
+  let received = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    chunks.push(value);
+    received += value.length;
+
+    if (total) {
+      fg.style.strokeDashoffset = 565.48 * (1 - received / total);
+    }
+  }
+
+  const size = chunks.reduce((s, c) => s + c.length, 0);
+  const merged = new Uint8Array(size);
+  let offset = 0;
+  for (const c of chunks) {
+    merged.set(c, offset);
+    offset += c.length;
+  }
+
+  return new Blob([merged]);
+}
+
+(async () => {
+  try {
+    const blob = await fetchWithProgress(romUrl);
+    const blobUrl = URL.createObjectURL(blob);
+
+    window.EJS_player = "#game";
+    window.EJS_core = "nds";
+    window.EJS_gameName = "Hypper Drive 2 | Animal Crossing: Wild World";
+    window.EJS_gameUrl = blobUrl;
+    window.EJS_pathtodata = "data/";
+    window.EJS_startOnLoaded = true;
+
+    const s = document.createElement("script");
+    s.src = "data/loader.js";
+    s.onload = () => {
+      loading.style.opacity = "0";
+      loading.style.transition = "opacity 300ms";
+      setTimeout(() => loading.remove(), 350);
+    };
+    s.onerror = () => error.textContent = "Failed to load EmulatorJS core";
+    document.body.appendChild(s);
+
+  } catch (e) {
+    error.textContent = "Error: " + e.message;
+    loading.remove();
+    console.error(e);
+  }
+})();
+</script>
+
+</body>
+</html>

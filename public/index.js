@@ -1,4 +1,4 @@
-﻿import { BareMuxConnection } from "/baremux/index.mjs";
+import { BareMuxConnection } from "/baremux/index.mjs";
 import { $scramjetLoadController } from "/scram/scramjet.bundle.js";
 import { registerSW } from "/register-sw.js";
 
@@ -10,7 +10,6 @@ const frameContainer = document.getElementById("frame-container");
 
 const { ScramjetController } = $scramjetLoadController();
 const scramjet = new ScramjetController({
-  prefix: "/service/scramjet/",
   files: {
     wasm: "/scram/scramjet.wasm.wasm",
     all: "/scram/scramjet.all.js",
@@ -18,11 +17,10 @@ const scramjet = new ScramjetController({
   }
 });
 
-const scramjetReady = scramjet.init();
+scramjet.init();
 
 const connection = new BareMuxConnection("/baremux/worker.js");
 const appConfig = window.__APP_CONFIG__ || {};
-const libcurlTransportPath = "/libcurl/index.mjs?v=2.0.5";
 
 function normalizeInput(value) {
   const input = value.trim();
@@ -43,14 +41,14 @@ function normalizeInput(value) {
 
 async function ensureTransport() {
   const current = await connection.getTransport();
-  if (current === libcurlTransportPath) {
+  if (current === "/libcurl/index.mjs") {
     return;
   }
 
-  const defaultWispUrl = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/wisp/`;
+  const defaultWispUrl = "wss://wisp.mercurywork.shop/";
   const wispUrl = appConfig.wispUrl || defaultWispUrl;
 
-  await connection.setTransport(libcurlTransportPath, [{ websocket: wispUrl }]);
+  await connection.setTransport("/libcurl/index.mjs", [{ websocket: wispUrl }]);
 }
 
 form.addEventListener("submit", async (event) => {
@@ -59,7 +57,6 @@ form.addEventListener("submit", async (event) => {
   errorCode.textContent = "";
 
   try {
-    await scramjetReady;
     await registerSW();
     await ensureTransport();
 

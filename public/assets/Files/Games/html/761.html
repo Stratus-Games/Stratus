@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Super Smash Bros</title>
+<base href="https://cdn.jsdelivr.net/gh/a456pur/seraph@main/storage/emulatorjs/">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html, body {
+    height: 100%;
+    margin: 0;
+    font-family: monospace;
+    font-weight: bold;
+    background: #222;
+    color: #fff;
+    overflow: hidden;
+  }
+
+  #error {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #f33;
+    font-size: 18px;
+    text-align: center;
+    z-index: 1000;
+  }
+
+  #game {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+  }
+</style>
+</head>
+<body>
+<div id="error"></div>
+<div id="game"></div>
+
+<script>
+const romUrl = "https://raw.githubusercontent.com/GLITCHED-OVERRIDE/Glitched-Assets/main/Games/Large%20Assets/Super%20Smash%20Bros%20N64/Super%20Smash%20Bros.%20(USA).n64";
+
+const error = document.getElementById("error");
+
+(async () => {
+    try {
+        // Fetch the ROM as a Blob
+        const res = await fetch(romUrl);
+        if (!res.ok) throw new Error("Failed to fetch ROM");
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+
+        // Set up EmulatorJS
+        window.EJS_player = "#game";
+        window.EJS_gameName = "Super Smash Bros N64";
+        window.EJS_gameUrl = blobUrl;
+        window.EJS_core = "n64";
+        window.EJS_pathtodata = "data/";
+        window.EJS_startOnLoaded = true;
+
+        const script = document.createElement("script");
+        script.src = "data/loader.js";
+        script.onerror = () => error.textContent = "Failed to load EmulatorJS core";
+        document.body.appendChild(script);
+    } catch (e) {
+        error.textContent = "Error: " + e.message;
+        console.error(e);
+    }
+})();
+</script>
+</body>
+</html>

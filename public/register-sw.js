@@ -1,5 +1,5 @@
 ﻿const stockSW = "/sw.js";
-const swAllowedHostnames = ["localhost", "127.0.0.1"];
+const swAllowedHostnames = ["localhost", "0.0.0.0"];
 
 export async function registerSW() {
   if (!navigator.serviceWorker) {

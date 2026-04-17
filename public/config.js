@@ -1,3 +1,3 @@
 window.__APP_CONFIG__ = Object.freeze({
-  wispUrl: ""
+  wispUrl: "wss://wisp.mercurywork.shop/"
 });

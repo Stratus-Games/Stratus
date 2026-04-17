@@ -11,9 +11,12 @@ async function ensureTransport() {
   const current = await connection.getTransport();
   if (current === libcurlTransportPath) return;
 
-  const defaultWispUrl = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/wisp/`;
-  const wispUrl = appConfig.wispUrl || defaultWispUrl;
-  await connection.setTransport(libcurlTransportPath, [{ websocket: wispUrl }]);
+  // ✅ FORCE official Scramjet Wisp
+  const wispUrl = appConfig.wispUrl || "wss://wisp.scramjet.org/";
+
+  await connection.setTransport(libcurlTransportPath, [
+    { websocket: wispUrl }
+  ]);
 }
 
 export async function ensureScramjetReady() {

@@ -85,7 +85,7 @@ app.server.on("listening", () => {
 
 // Port and host
 const port = Number.parseInt(process.env.PORT ?? "9000", 10) || 9000;
-const host = process.env.HOST ?? "127.0.0.1";
+const host = process.env.HOST ?? "0.0.0.0";
 
 // Recursive startup for EADDRINUSE
 async function startServer(preferredPort) {

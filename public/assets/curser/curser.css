@@ -1,0 +1,175 @@
+/* ================================
+   STRATUS CURSOR CATEGORIES
+   pointer.cur = default
+   clicker.cur = click / action
+   texter.cur  = typing / text
+================================ */
+
+/* 1) Default pointer for everything */
+html,
+body,
+*,
+*::before,
+*::after {
+  cursor: url("./pointer.cur"), auto;
+}
+
+/* 2) Click / interactive */
+a,
+button,
+summary,
+label[for],
+select,
+option,
+details > summary,
+[role="button"],
+[role="link"],
+[onclick],
+[tabindex]:not([tabindex="-1"]),
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+input[type="checkbox"],
+input[type="radio"],
+input[type="file"],
+input[type="range"],
+audio[controls],
+video[controls],
+.clickable,
+.card,
+.favorite-btn,
+.switch,
+.control-btn,
+.back-btn,
+.filter-container,
+.dropdown-options div,
+.pagination button,
+.fav-toggle {
+  cursor: url("./clicker.cur"), pointer !important;
+}
+
+/* 3) Typing / text selection */
+input:not([type]),
+input[type="text"],
+input[type="search"],
+input[type="email"],
+input[type="password"],
+input[type="url"],
+input[type="tel"],
+input[type="number"],
+textarea,
+[contenteditable="true"],
+[contenteditable=""],
+[role="textbox"] {
+  cursor: url("./texter.cur"), text !important;
+}
+
+/* 4) Explicit read-only text fields stay text cursor */
+input[readonly],
+textarea[readonly] {
+  cursor: url("./texter.cur"), text !important;
+}
+
+/* 5) Disabled states */
+:disabled,
+[disabled],
+[aria-disabled="true"] {
+  cursor: not-allowed !important;
+}
+
+/* 6) Drag and drop helpers (when used) */
+[draggable="true"],
+.is-draggable,
+.drag-handle {
+  cursor: grab !important;
+}
+
+[draggable="true"]:active,
+.is-draggable:active,
+.drag-handle:active {
+  cursor: grabbing !important;
+}
+
+/* 7) Resize helpers (when used) */
+.resize-x,
+[data-resize="x"] {
+  cursor: ew-resize !important;
+}
+
+.resize-y,
+[data-resize="y"] {
+  cursor: ns-resize !important;
+}
+
+.resize-both,
+[data-resize="both"] {
+  cursor: nwse-resize !important;
+}
+
+/* 8) Utility overrides for future components */
+.cursor-default {
+  cursor: url("./pointer.cur"), auto !important;
+}
+
+.cursor-click {
+  cursor: url("./clicker.cur"), pointer !important;
+}
+
+.cursor-text {
+  cursor: url("./texter.cur"), text !important;
+}
+
+/* 9) App-specific hardening (AI + Overlay pages) */
+#overlay-launch,
+#send,
+#toggleCapture,
+#input-area button,
+#chat button,
+#preview-area button {
+  cursor: url("./clicker.cur"), pointer !important;
+}
+
+#message,
+#message *,
+#input-area input,
+#input-area textarea {
+  cursor: url("./texter.cur"), text !important;
+}
+
+#chat,
+#chat .message,
+#chat .message * {
+  cursor: url("./pointer.cur"), auto !important;
+}
+
+#preview,
+video,
+canvas,
+iframe {
+  cursor: url("./pointer.cur"), auto !important;
+}
+
+/* 10) Strong fallback for inline pointer styles */
+[style*="cursor:pointer"],
+[style*="cursor: pointer"] {
+  cursor: url("./clicker.cur"), pointer !important;
+}
+
+/* 11) Scroll/overflow bars (Chromium/WebKit) */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  cursor: url("./clicker.cur"), pointer !important;
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-thumb {
+  cursor: url("./clicker.cur"), pointer !important;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track,
+*::-webkit-scrollbar-track {
+  cursor: url("./pointer.cur"), auto !important;
+}

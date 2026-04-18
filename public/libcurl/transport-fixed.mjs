@@ -18,9 +18,32 @@ function normalizeHeaderPairs(headers) {
   return [];
 }
 
+function normalizeResponseHeaders(headers) {
+  const pairs = normalizeHeaderPairs(headers);
+  const output = {};
+
+  for (const entry of pairs) {
+    if (!Array.isArray(entry) || entry.length < 2) continue;
+    const key = String(entry[0]).toLowerCase();
+    const value = String(entry[1]);
+
+    if (Object.prototype.hasOwnProperty.call(output, key)) {
+      output[key] = `${output[key]}, ${value}`;
+    } else {
+      output[key] = value;
+    }
+  }
+
+  return output;
+}
+
 export default class SafeLibcurlClient extends LibcurlClient {
   async request(remote, method, body, headers, signal) {
-    return super.request(remote, method, body, normalizeHeaderPairs(headers), signal);
+    const response = await super.request(remote, method, body, normalizeHeaderPairs(headers), signal);
+    return {
+      ...response,
+      headers: normalizeResponseHeaders(response.headers)
+    };
   }
 
   connect(url, protocols, requestHeaders, onopen, onmessage, onclose, onerror) {

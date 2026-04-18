@@ -9,7 +9,7 @@ export async function registerSW() {
     throw new Error("Your browser does not support service workers.");
   }
 
-  await navigator.serviceWorker.register(stockSW);
+  await navigator.serviceWorker.register(stockSW, { updateViaCache: "none" });
   await navigator.serviceWorker.ready;
 
   if (!navigator.serviceWorker.controller) {

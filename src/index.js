@@ -23,18 +23,17 @@ Object.assign(wisp.options, {
 
 // Cross-Origin Isolation
 const useCrossOriginIsolation = process.env.CROSS_ORIGIN_ISOLATION === "true";
+const runningOnRender = process.env.RENDER === "true";
 
 // Fastify server
 const app = Fastify({
+  trustProxy: true,
   serverFactory: (handler) => {
     const server = createServer()
       .on("request", (req, res) => {
         if (useCrossOriginIsolation) {
           res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
           res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
-        } else {
-          res.setHeader("Cross-Origin-Opener-Policy", "unsafe-none");
-          res.setHeader("Cross-Origin-Embedder-Policy", "unsafe-none");
         }
         handler(req, res);
       })
@@ -85,7 +84,7 @@ app.server.on("listening", () => {
 
 // Port and host
 const port = Number.parseInt(process.env.PORT ?? "9000", 10) || 9000;
-const host = process.env.HOST ?? "0.0.0.0";
+const host = process.env.HOST ?? (runningOnRender ? "0.0.0.0" : "127.0.0.1");
 
 // Recursive startup for EADDRINUSE
 async function startServer(preferredPort) {

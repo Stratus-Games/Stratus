@@ -1,4 +1,4 @@
-(function(g,f){if(typeof exports=="object"&&typeof module<"u"){module.exports=f(require)}else if("function"==typeof define && define.amd){define("CurlMod",["fs","path"],function(_d_0,_d_1){var d={"fs": _d_0,"path": _d_1},r=function(m){if(m in d) return d[m];if(typeof require=="function") return require(m);throw new Error("Cannot find module '"+m+"'")};return f(r)})}else {var gN={"fs":"fs","path":"path"},gReq=function(r){var mod = r in gN ? g[gN[r]] : g[r]; return mod };g["CurlMod"]=f(gReq)}}(typeof globalThis < "u" ? globalThis : typeof self < "u" ? self : this,function(require){var exports={};var __exports=exports;var module={exports};
+(function(g,f){if(typeof exports=="object"&&typeof module<"u"){module.exports=f(require)}else if("function"==typeof define && define.amd){define("LibcurlTransport",["fs","path"],function(_d_0,_d_1){var d={"fs": _d_0,"path": _d_1},r=function(m){if(m in d) return d[m];if(typeof require=="function") return require(m);throw new Error("Cannot find module '"+m+"'")};return f(r)})}else {var gN={"fs":"fs","path":"path"},gReq=function(r){var mod = r in gN ? g[gN[r]] : g[r]; return mod };g["LibcurlTransport"]=f(gReq)}}(typeof globalThis < "u" ? globalThis : typeof self < "u" ? self : this,function(require){var exports={};var __exports=exports;var module={exports};
 "use strict";
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -21,6 +21,7 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // src/main.ts
 var main_exports = {};
 __export(main_exports, {
+  LibcurlClient: () => LibcurlClient,
   default: () => LibcurlClient
 });
 module.exports = __toCommonJS(main_exports);
@@ -6391,10 +6392,10 @@ Several C libraries are used, and their licenses are listed below:
 
 // src/main.ts
 var LibcurlClient = class {
+  session;
   wisp;
   proxy;
   transport;
-  session;
   connections;
   constructor(options) {
     this.wisp = options.wisp ?? options.websocket;
@@ -6402,74 +6403,109 @@ var LibcurlClient = class {
     this.proxy = options.proxy;
     this.connections = options.connections;
     if (!this.wisp.endsWith("/")) {
-      throw new TypeError("The Websocket URL must end with a trailing forward slash.");
+      throw new TypeError(
+        "The Websocket URL must end with a trailing forward slash."
+      );
     }
     if (!this.wisp.startsWith("ws://") && !this.wisp.startsWith("wss://")) {
-      throw new TypeError("The Websocket URL must use the ws:// or wss:// protocols.");
+      throw new TypeError(
+        "The Websocket URL must use the ws:// or wss:// protocols."
+      );
     }
-    if (typeof options.proxy === "string" || options.proxy instanceof String) {
+    if (typeof options.proxy === "string") {
       let protocol = new URL(options.proxy).protocol;
       if (!["socks5h:", "socks4a:", "http:"].includes(protocol)) {
-        throw new TypeError("Only socks5h, socks4a, and http proxies are supported.");
+        throw new TypeError(
+          "Only socks5h, socks4a, and http proxies are supported."
+        );
       }
     }
   }
   async init() {
-    if (this.transport)
-      libcurl.transport = this.transport;
+    if (this.transport) libcurl.transport = this.transport;
+    if (!libcurl.ready) {
+      await new Promise((resolve, reject) => {
+        libcurl.onload = () => {
+          console.log("loaded libcurl.js v" + libcurl.version.lib);
+          this.ready = true;
+          resolve(null);
+        };
+      });
+    }
     libcurl.set_websocket(this.wisp);
     this.session = new libcurl.HTTPSession({
       proxy: this.proxy
     });
-    if (this.connections)
-      this.session.set_connections(...this.connections);
+    if (this.connections) this.session.set_connections(...this.connections);
     this.ready = libcurl.ready;
     if (this.ready) {
       console.log("running libcurl.js v" + libcurl.version.lib);
       return;
     }
-    ;
-    await new Promise((resolve, reject) => {
-      libcurl.onload = () => {
-        console.log("loaded libcurl.js v" + libcurl.version.lib);
-        this.ready = true;
-        resolve(null);
-      };
-    });
   }
   ready = false;
   async meta() {
   }
+  normalizeHeaders(headers) {
+    if (!headers)
+      return {};
+    if (typeof Headers !== "undefined" && headers instanceof Headers) {
+      return Object.fromEntries(headers.entries());
+    }
+    if (Array.isArray(headers)) {
+      return Object.fromEntries(headers);
+    }
+    if (typeof headers === "object" && typeof headers[Symbol.iterator] === "function") {
+      return Object.fromEntries(headers);
+    }
+    if (typeof headers === "object") {
+      return { ...headers };
+    }
+    return {};
+  }
+  normalizeResponseHeaders(rawHeaders) {
+    if (Array.isArray(rawHeaders)) {
+      const headers = {};
+      for (const [key, value] of rawHeaders) {
+        if (!headers[key]) {
+          headers[key] = [value];
+        } else if (Array.isArray(headers[key])) {
+          headers[key].push(value);
+        } else {
+          headers[key] = [headers[key], value];
+        }
+      }
+      return headers;
+    }
+    if (rawHeaders && typeof rawHeaders === "object") {
+      return { ...rawHeaders };
+    }
+    return {};
+  }
   async request(remote, method, body, headers, signal) {
+    const headersObj = this.normalizeHeaders(headers);
     let payload = await this.session.fetch(remote.href, {
       method,
-      headers,
+      headers: headersObj,
       body,
       redirect: "manual",
       signal
     });
-    let respheaders = {};
-    for (let [key, value] of payload.raw_headers) {
-      if (!respheaders[key]) {
-        respheaders[key] = [value];
-      } else {
-        respheaders[key].push(value);
-      }
-    }
     return {
       body: payload.body,
-      headers: respheaders,
+      headers: this.normalizeResponseHeaders(payload.raw_headers),
       status: payload.status,
       statusText: payload.statusText
     };
   }
   connect(url, protocols, requestHeaders, onopen, onmessage, onclose, onerror) {
+    const headersObj = this.normalizeHeaders(requestHeaders);
     let socket = new libcurl.WebSocket(url.toString(), protocols, {
-      headers: requestHeaders
+      headers: headersObj
     });
     socket.binaryType = "arraybuffer";
     socket.onopen = (event) => {
-      onopen("");
+      onopen("", "");
     };
     socket.onclose = (event) => {
       onclose(event.code, event.reason);

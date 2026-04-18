@@ -6440,36 +6440,77 @@ var LibcurlClient = class {
   ready = false;
   async meta() {
   }
+  normalizeHeaders(headers) {
+    if (!headers)
+      return {};
+    if (typeof Headers !== "undefined" && headers instanceof Headers) {
+      return Object.fromEntries(headers.entries());
+    }
+    if (Array.isArray(headers)) {
+      return Object.fromEntries(headers);
+    }
+    if (typeof headers === "object" && typeof headers[Symbol.iterator] === "function") {
+      return Object.fromEntries(headers);
+    }
+    if (typeof headers === "object") {
+      return { ...headers };
+    }
+    return {};
+  }
+  normalizeResponseHeaders(rawHeaders) {
+    if (Array.isArray(rawHeaders)) {
+      const headers = {};
+      for (const [key, value] of rawHeaders) {
+        if (!headers[key]) {
+          headers[key] = [value];
+        } else if (Array.isArray(headers[key])) {
+          headers[key].push(value);
+        } else {
+          headers[key] = [headers[key], value];
+        }
+      }
+      return headers;
+    }
+    if (rawHeaders && typeof rawHeaders === "object") {
+      return { ...rawHeaders };
+    }
+    return {};
+  }
   async request(remote, method, body, headers, signal) {
-    let payload = await this.session.fetch(remote.href, {
+    const request_options = {
       method,
-      headers,
+      headers: this.normalizeHeaders(headers),
       body,
       redirect: "manual",
       signal
-    });
-    let respheaders = {};
-    for (let [key, value] of payload.raw_headers) {
-      if (!respheaders[key]) {
-        respheaders[key] = [value];
-      } else {
-        respheaders[key].push(value);
-      }
+    };
+    let payload;
+    try {
+      payload = await this.session.fetch(remote.href, request_options);
+    } catch (error) {
+      const is_ssl_connect_error = error instanceof TypeError && ("" + error.message).includes("error code 35");
+      if (!is_ssl_connect_error)
+        throw error;
+      payload = await this.session.fetch(remote.href, {
+        ...request_options,
+        _libcurl_http_version: 1.1
+      });
     }
     return {
       body: payload.body,
-      headers: respheaders,
+      headers: this.normalizeResponseHeaders(payload.raw_headers),
       status: payload.status,
       statusText: payload.statusText
     };
   }
   connect(url, protocols, requestHeaders, onopen, onmessage, onclose, onerror) {
+    const headersObj = this.normalizeHeaders(requestHeaders);
     let socket = new libcurl.WebSocket(url.toString(), protocols, {
-      headers: requestHeaders
+      headers: headersObj
     });
     socket.binaryType = "arraybuffer";
     socket.onopen = (event) => {
-      onopen("");
+      onopen("", "");
     };
     socket.onclose = (event) => {
       onclose(event.code, event.reason);

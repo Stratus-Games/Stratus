@@ -11,6 +11,38 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+function shouldCoerceDocumentHtml(event, response) {
+  if (!response || response.type === "opaque" || response.type === "opaqueredirect") {
+    return false;
+  }
+
+  const isNavigation =
+    event.request.mode === "navigate" ||
+    event.request.destination === "document" ||
+    event.request.destination === "iframe";
+  if (!isNavigation) return false;
+
+  if (!event.request.url.includes("/service/scramjet/")) return false;
+  if (response.status < 200 || response.status >= 300) return false;
+
+  const contentType = (response.headers.get("content-type") || "").toLowerCase();
+  return contentType.length === 0 || contentType.startsWith("text/plain");
+}
+
+function coerceDocumentHtml(event, response) {
+  if (!shouldCoerceDocumentHtml(event, response)) {
+    return response;
+  }
+
+  const headers = new Headers(response.headers);
+  headers.set("content-type", "text/html; charset=utf-8");
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
+}
+
 async function handleRequest(event) {
   try {
     await scramjet.loadConfig();
@@ -26,7 +58,8 @@ async function handleRequest(event) {
 
   try {
     if (scramjet.route(event)) {
-      return await scramjet.fetch(event);
+      const response = await scramjet.fetch(event);
+      return coerceDocumentHtml(event, response);
     }
   } catch (err) {
     // Some pages/assets can be requested before transport or config is fully ready.

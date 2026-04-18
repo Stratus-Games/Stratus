@@ -6446,44 +6446,11 @@ var LibcurlClient = class {
   ready = false;
   async meta() {
   }
-  normalizeHeaders(headers) {
-    if (!headers)
-      return {};
-    if (typeof Headers !== "undefined" && headers instanceof Headers) {
-      return Object.fromEntries(headers.entries());
-    }
-    if (Array.isArray(headers)) {
-      return Object.fromEntries(headers);
-    }
-    if (typeof headers === "object" && typeof headers[Symbol.iterator] === "function") {
-      return Object.fromEntries(headers);
-    }
-    if (typeof headers === "object") {
-      return { ...headers };
-    }
-    return {};
-  }
-  normalizeResponseHeaders(rawHeaders) {
-    if (Array.isArray(rawHeaders)) {
-      const headers = {};
-      for (const [key, value] of rawHeaders) {
-        if (!headers[key]) {
-          headers[key] = [value];
-        } else if (Array.isArray(headers[key])) {
-          headers[key].push(value);
-        } else {
-          headers[key] = [headers[key], value];
-        }
-      }
-      return headers;
-    }
-    if (rawHeaders && typeof rawHeaders === "object") {
-      return { ...rawHeaders };
-    }
-    return {};
-  }
   async request(remote, method, body, headers, signal) {
-    const headersObj = this.normalizeHeaders(headers);
+    let headersObj = {};
+    for (let [key, value] of headers) {
+      headersObj[key] = value;
+    }
     let payload = await this.session.fetch(remote.href, {
       method,
       headers: headersObj,
@@ -6493,13 +6460,16 @@ var LibcurlClient = class {
     });
     return {
       body: payload.body,
-      headers: this.normalizeResponseHeaders(payload.raw_headers),
+      headers: payload.raw_headers,
       status: payload.status,
       statusText: payload.statusText
     };
   }
   connect(url, protocols, requestHeaders, onopen, onmessage, onclose, onerror) {
-    const headersObj = this.normalizeHeaders(requestHeaders);
+    let headersObj = {};
+    for (let [key, value] of requestHeaders) {
+      headersObj[key] = value;
+    }
     let socket = new libcurl.WebSocket(url.toString(), protocols, {
       headers: headersObj
     });

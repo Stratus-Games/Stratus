@@ -22,7 +22,7 @@ const scramjetReady = scramjet.init();
 
 const connection = new BareMuxConnection("/baremux/worker.js");
 const appConfig = window.__APP_CONFIG__ || {};
-const libcurlTransportPath = "/libcurl/transport-fixed.mjs?v=3";
+const libcurlTransportPath = "/libcurl/index.mjs?v=2.0.5-p1";
 
 function normalizeInput(value) {
   const input = value.trim();

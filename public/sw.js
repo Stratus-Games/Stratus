@@ -11,37 +11,6 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-function shouldForceHtml(event, response) {
-  const destination = event.request.destination;
-  const isDocumentLike = destination === "document" || destination === "iframe";
-  if (!isDocumentLike) return false;
-
-  const accept = event.request.headers.get("accept") || "";
-  const wantsHtml = accept.includes("text/html") || accept.includes("*/*");
-  if (!wantsHtml) return false;
-
-  const contentType = response.headers.get("content-type") || "";
-  return contentType.length === 0 || contentType.startsWith("text/plain");
-}
-
-function coerceDocumentContentType(event, response) {
-  if (!response || response.type === "opaque" || response.type === "opaqueredirect") {
-    return response;
-  }
-
-  if (!shouldForceHtml(event, response)) {
-    return response;
-  }
-
-  const headers = new Headers(response.headers);
-  headers.set("content-type", "text/html; charset=utf-8");
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers
-  });
-}
-
 async function handleRequest(event) {
   try {
     await scramjet.loadConfig();
@@ -57,8 +26,7 @@ async function handleRequest(event) {
 
   try {
     if (scramjet.route(event)) {
-      const response = await scramjet.fetch(event);
-      return coerceDocumentContentType(event, response);
+      return await scramjet.fetch(event);
     }
   } catch (err) {
     // Some pages/assets can be requested before transport or config is fully ready.

@@ -53,7 +53,9 @@ async function ensureTransport() {
   await connection.setTransport(libcurlTransportPath, [{ websocket: wispUrl }]);
 }
 
-form.addEventListener("submit", async (event) => {
+if (!form || !address || !error || !errorCode || !frameContainer) {
+  console.warn("[index.js] Scramjet form UI not found on this page; skipping form bindings.");
+} else form.addEventListener("submit", async (event) => {
   event.preventDefault();
   error.textContent = "";
   errorCode.textContent = "";

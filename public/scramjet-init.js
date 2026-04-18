@@ -1,9 +1,19 @@
 import { BareMuxConnection } from "/baremux/index.mjs";
+import { $scramjetLoadController } from "/scram/scramjet.bundle.js";
 import { registerSW } from "/register-sw.js";
 
 const connection = new BareMuxConnection("/baremux/worker.js");
 const appConfig = window.__APP_CONFIG__ || {};
 const libcurlTransportPath = "/libcurl/index.mjs?v=2.0.5";
+const { ScramjetController } = $scramjetLoadController();
+const scramjet = new ScramjetController({
+  prefix: "/service/scramjet/",
+  files: {
+    wasm: "/scram/scramjet.wasm.wasm",
+    all: "/scram/scramjet.all.js",
+    sync: "/scram/scramjet.sync.js"
+  }
+});
 
 let readyPromise = null;
 
@@ -20,6 +30,7 @@ export async function ensureScramjetReady() {
   if (readyPromise) return readyPromise;
 
   readyPromise = (async () => {
+    await scramjet.init();
     await registerSW();
     await ensureTransport();
   })();

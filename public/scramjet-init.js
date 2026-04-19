@@ -5,6 +5,7 @@ import { registerSW } from "/register-sw.js";
 const connection = new BareMuxConnection("/baremux/worker.js");
 const appConfig = window.__APP_CONFIG__ || {};
 const libcurlTransportPath = "/libcurl/transport-fixed.mjs?v=5";
+const bareTransportPath = "/bare-transport/index.mjs?v=1";
 const { ScramjetController } = $scramjetLoadController();
 const scramjet = new ScramjetController({
   prefix: "/service/scramjet/",
@@ -17,26 +18,45 @@ const scramjet = new ScramjetController({
 
 let readyPromise = null;
 
-async function ensureTransport() {
+function shouldUseBareTransport(targetUrl) {
+  if (!targetUrl) return false;
+
+  try {
+    const host = new URL(targetUrl).hostname.toLowerCase();
+    return host === "play.geforcenow.com" || host.endsWith(".nvidia.com");
+  } catch {
+    return false;
+  }
+}
+
+async function ensureTransport(targetUrl) {
+  const useBare = shouldUseBareTransport(targetUrl);
+  const selectedTransportPath = useBare ? bareTransportPath : libcurlTransportPath;
   const current = await connection.getTransport();
-  if (current === libcurlTransportPath) return;
+  if (current === selectedTransportPath) return;
+
+  if (useBare) {
+    const bareUrl = `${location.origin}/bare/`;
+    await connection.setTransport(bareTransportPath, [bareUrl]);
+    return;
+  }
 
   const defaultWispUrl = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/wisp/`;
   const wispUrl = appConfig.wispUrl || defaultWispUrl;
   await connection.setTransport(libcurlTransportPath, [{ websocket: wispUrl }]);
 }
 
-export async function ensureScramjetReady() {
-  if (readyPromise) return readyPromise;
-
-  readyPromise = (async () => {
-    await scramjet.init();
-    await registerSW();
-    await ensureTransport();
-  })();
+export async function ensureScramjetReady(targetUrl) {
+  if (!readyPromise) {
+    readyPromise = (async () => {
+      await scramjet.init();
+      await registerSW();
+    })();
+  }
 
   try {
     await readyPromise;
+    await ensureTransport(targetUrl);
   } catch (err) {
     readyPromise = null;
     throw err;

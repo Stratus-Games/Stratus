@@ -23,6 +23,8 @@ const scramjetReady = scramjet.init();
 const connection = new BareMuxConnection("/baremux/worker.js");
 const appConfig = window.__APP_CONFIG__ || {};
 const libcurlTransportPath = "/libcurl/transport-fixed.mjs?v=5";
+const bareTransportPath = "/bare-transport/index.mjs?v=1";
+const sslSensitiveHosts = ["play.geforcenow.com", ".nvidia.com"];
 
 function normalizeInput(value) {
   const input = value.trim();
@@ -41,15 +43,33 @@ function normalizeInput(value) {
   return `https://duckduckgo.com/?q=${encodeURIComponent(input)}`;
 }
 
-async function ensureTransport() {
+function shouldUseBareTransport(targetUrl) {
+  try {
+    const host = new URL(targetUrl).hostname.toLowerCase();
+    return sslSensitiveHosts.some((entry) =>
+      entry.startsWith(".") ? host.endsWith(entry) : host === entry
+    );
+  } catch {
+    return false;
+  }
+}
+
+async function ensureTransport(targetUrl) {
+  const useBare = shouldUseBareTransport(targetUrl);
+  const selectedTransportPath = useBare ? bareTransportPath : libcurlTransportPath;
   const current = await connection.getTransport();
-  if (current === libcurlTransportPath) {
+  if (current === selectedTransportPath) {
+    return;
+  }
+
+  if (useBare) {
+    const bareUrl = `${location.origin}/bare/`;
+    await connection.setTransport(bareTransportPath, [bareUrl]);
     return;
   }
 
   const defaultWispUrl = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/wisp/`;
   const wispUrl = appConfig.wispUrl || defaultWispUrl;
-
   await connection.setTransport(libcurlTransportPath, [{ websocket: wispUrl }]);
 }
 
@@ -61,15 +81,16 @@ if (!form || !address || !error || !errorCode || !frameContainer) {
   errorCode.textContent = "";
 
   try {
+    const targetUrl = normalizeInput(address.value);
     await scramjetReady;
     await registerSW();
-    await ensureTransport();
+    await ensureTransport(targetUrl);
 
     frameContainer.textContent = "";
     const frame = scramjet.createFrame();
     frame.frame.id = "sj-frame";
     frameContainer.appendChild(frame.frame);
-    frame.go(normalizeInput(address.value));
+    frame.go(targetUrl);
   } catch (err) {
     error.textContent = "Failed to open URL in Scramjet.";
     errorCode.textContent = String(err);

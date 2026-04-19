@@ -15,6 +15,10 @@ const copies = [
   {
     from: resolve(root, "node_modules", "@mercuryworkshop", "libcurl-transport", "dist"),
     to: resolve(root, "public", "libcurl")
+  },
+  {
+    from: resolve(root, "node_modules", "@mercuryworkshop", "bare-transport", "dist"),
+    to: resolve(root, "public", "bare-transport")
   }
 ];
 

@@ -4,8 +4,8 @@ import { registerSW } from "/register-sw.js";
 
 const connection = new BareMuxConnection("/baremux/worker.js");
 const appConfig = window.__APP_CONFIG__ || {};
-const libcurlTransportPath = "/transports/libcurl-fixed.mjs?v=6";
-const bareTransportPath = "/transports/bare-fixed.mjs?v=3";
+const libcurlTransportPath = "/transports/libcurl-fixed.mjs?v=7";
+const bareTransportPath = "/transports/bare-fixed.mjs?v=4";
 const preferBareTransport = appConfig.preferBareTransport !== false;
 const { ScramjetController } = $scramjetLoadController();
 const scramjet = new ScramjetController({

@@ -11,59 +11,6 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-function isScramjetDocumentRequest(event) {
-  const destination = event.request.destination;
-  const isDocumentLike =
-    event.request.mode === "navigate" ||
-    destination === "document" ||
-    destination === "iframe";
-
-  return isDocumentLike && event.request.url.includes("/service/scramjet/");
-}
-
-async function coerceMislabeledHtml(event, response) {
-  if (!response || response.type === "opaque" || response.type === "opaqueredirect") {
-    return response;
-  }
-
-  if (!isScramjetDocumentRequest(event)) {
-    return response;
-  }
-
-  const contentType = (response.headers.get("content-type") || "").toLowerCase();
-  const isMislabeled = contentType.length === 0 || contentType.startsWith("text/plain");
-  if (!isMislabeled) {
-    return response;
-  }
-
-  let snippet = "";
-  try {
-    snippet = (await response.clone().text()).slice(0, 512).toLowerCase();
-  } catch {
-    return response;
-  }
-
-  const looksLikeHtml =
-    snippet.includes("<!doctype html") ||
-    snippet.includes("<html") ||
-    snippet.includes("<head") ||
-    snippet.includes("<body");
-
-  if (!looksLikeHtml) {
-    return response;
-  }
-
-  const headers = new Headers(response.headers);
-  headers.set("content-type", "text/html; charset=utf-8");
-  headers.delete("x-content-type-options");
-
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers
-  });
-}
-
 async function handleRequest(event) {
   try {
     await scramjet.loadConfig();
@@ -79,8 +26,7 @@ async function handleRequest(event) {
 
   try {
     if (scramjet.route(event)) {
-      const response = await scramjet.fetch(event);
-      return await coerceMislabeledHtml(event, response);
+      return await scramjet.fetch(event);
     }
   } catch (err) {
     // Some pages/assets can be requested before transport or config is fully ready.

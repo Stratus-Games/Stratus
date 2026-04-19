@@ -37,12 +37,34 @@ function normalizeResponseHeaders(headers) {
   return output;
 }
 
+function wantsHtml(headers) {
+  const accept = String(headers.accept || "");
+  return accept.includes("text/html");
+}
+
+function coerceDocumentContentType(requestHeaders, responseHeaders) {
+  if (!wantsHtml(requestHeaders)) return responseHeaders;
+
+  const contentType = String(responseHeaders["content-type"] || "").toLowerCase();
+  if (contentType.length === 0 || contentType.startsWith("text/plain")) {
+    return {
+      ...responseHeaders,
+      "content-type": "text/html; charset=utf-8"
+    };
+  }
+
+  return responseHeaders;
+}
+
 export default class SafeLibcurlClient extends LibcurlClient {
   async request(remote, method, body, headers, signal) {
+    const normalizedRequestHeaders = Object.fromEntries(normalizeHeaderPairs(headers));
     const response = await super.request(remote, method, body, normalizeHeaderPairs(headers), signal);
+    const normalizedResponseHeaders = normalizeResponseHeaders(response.headers);
+
     return {
       ...response,
-      headers: normalizeResponseHeaders(response.headers)
+      headers: coerceDocumentContentType(normalizedRequestHeaders, normalizedResponseHeaders)
     };
   }
 

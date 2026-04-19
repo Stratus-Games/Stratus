@@ -6009,6 +6009,12 @@
       "name": "The Man From The Window 2",
       "cover": "/assets/Files/Games/images/1001.png",
       "url": "/assets/Files/Games/html/1001.html"
+    },
+    {
+      "id": 1002,
+      "name": "Miside",
+      "cover": "/assets/Files/Games/images/1002.png",
+      "url": "/assets/Files/Games/html/1002.html"
     }
   ]
 }

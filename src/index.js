@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
 import { server as wisp, logging } from "@mercuryworkshop/wisp-js/server";
+import bareModule from "@tomphttp/bare-server-node";
 import { scramjetPath } from "@mercuryworkshop/scramjet/path";
 import { baremuxPath } from "@mercuryworkshop/bare-mux/node";
 import fs from "fs";
@@ -10,6 +11,8 @@ import fs from "fs";
 // Paths
 const publicPath = fileURLToPath(new URL("../public/", import.meta.url));
 const libcurlPath = fileURLToPath(new URL("../public/libcurl/", import.meta.url));
+const { createBareServer } = bareModule;
+const bareServer = createBareServer("/bare/");
 
 // Logging
 logging.set_level(logging.NONE);
@@ -31,6 +34,11 @@ const app = Fastify({
   serverFactory: (handler) => {
     const server = createServer()
       .on("request", (req, res) => {
+        if (bareServer.shouldRoute(req)) {
+          bareServer.routeRequest(req, res);
+          return;
+        }
+
         if (useCrossOriginIsolation) {
           res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
           res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
@@ -42,6 +50,12 @@ const app = Fastify({
           socket.destroy();
           return;
         }
+
+        if (bareServer.shouldRoute(req)) {
+          bareServer.routeUpgrade(req, socket, head);
+          return;
+        }
+
         if (req.url.endsWith("/wisp/")) {
           try {
             wisp.routeRequest(req, socket, head);

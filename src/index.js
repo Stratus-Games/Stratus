@@ -12,7 +12,17 @@ import fs from "fs";
 const publicPath = fileURLToPath(new URL("../public/", import.meta.url));
 const libcurlPath = fileURLToPath(new URL("../public/libcurl/", import.meta.url));
 const { createBareServer } = bareModule;
-const bareServer = createBareServer("/bare/");
+const bareMaxConnectionsPerIp = Number.parseInt(process.env.BARE_MAX_CONNECTIONS_PER_IP ?? "250", 10);
+const bareWindowDuration = Number.parseInt(process.env.BARE_WINDOW_DURATION ?? "60", 10);
+const bareBlockDuration = Number.parseInt(process.env.BARE_BLOCK_DURATION ?? "5", 10);
+
+const bareServer = createBareServer("/bare/", {
+  connectionLimiter: {
+    maxConnectionsPerIP: Number.isFinite(bareMaxConnectionsPerIp) ? bareMaxConnectionsPerIp : 250,
+    windowDuration: Number.isFinite(bareWindowDuration) ? bareWindowDuration : 60,
+    blockDuration: Number.isFinite(bareBlockDuration) ? bareBlockDuration : 5
+  }
+});
 
 // Logging
 logging.set_level(logging.NONE);

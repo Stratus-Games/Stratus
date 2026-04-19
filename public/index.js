@@ -23,7 +23,7 @@ const scramjetReady = scramjet.init();
 const connection = new BareMuxConnection("/baremux/worker.js");
 const appConfig = window.__APP_CONFIG__ || {};
 const libcurlTransportPath = "/libcurl/transport-fixed.mjs?v=5";
-const bareTransportPath = "/bare-transport/index.mjs?v=1";
+const bareTransportPath = "/bare-transport/transport-fixed.mjs?v=2";
 const sslSensitiveHosts = ["play.geforcenow.com", ".nvidia.com"];
 const preferBareTransport = appConfig.preferBareTransport !== false;
 

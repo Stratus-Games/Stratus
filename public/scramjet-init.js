@@ -6,6 +6,7 @@ const connection = new BareMuxConnection("/baremux/worker.js");
 const appConfig = window.__APP_CONFIG__ || {};
 const libcurlTransportPath = "/libcurl/transport-fixed.mjs?v=5";
 const bareTransportPath = "/bare-transport/index.mjs?v=1";
+const preferBareTransport = appConfig.preferBareTransport !== false;
 const { ScramjetController } = $scramjetLoadController();
 const scramjet = new ScramjetController({
   prefix: "/service/scramjet/",
@@ -30,7 +31,7 @@ function shouldUseBareTransport(targetUrl) {
 }
 
 async function ensureTransport(targetUrl) {
-  const useBare = shouldUseBareTransport(targetUrl);
+  const useBare = preferBareTransport || shouldUseBareTransport(targetUrl);
   const selectedTransportPath = useBare ? bareTransportPath : libcurlTransportPath;
   const current = await connection.getTransport();
   if (current === selectedTransportPath) return;

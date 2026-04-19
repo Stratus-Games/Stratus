@@ -25,6 +25,7 @@ const appConfig = window.__APP_CONFIG__ || {};
 const libcurlTransportPath = "/libcurl/transport-fixed.mjs?v=5";
 const bareTransportPath = "/bare-transport/index.mjs?v=1";
 const sslSensitiveHosts = ["play.geforcenow.com", ".nvidia.com"];
+const preferBareTransport = appConfig.preferBareTransport !== false;
 
 function normalizeInput(value) {
   const input = value.trim();
@@ -55,7 +56,7 @@ function shouldUseBareTransport(targetUrl) {
 }
 
 async function ensureTransport(targetUrl) {
-  const useBare = shouldUseBareTransport(targetUrl);
+  const useBare = preferBareTransport || shouldUseBareTransport(targetUrl);
   const selectedTransportPath = useBare ? bareTransportPath : libcurlTransportPath;
   const current = await connection.getTransport();
   if (current === selectedTransportPath) {

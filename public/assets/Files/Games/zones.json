@@ -6003,6 +6003,12 @@
       "name": "Prodigy V1.70.0",
       "cover": "/assets/Files/Games/images/1000.png",
       "url": "/assets/Files/Games/html/1000.html"
+    },
+    {
+      "id": 1001,
+      "name": "The Man From The Window 2",
+      "cover": "/assets/Files/Games/images/1001.png",
+      "url": "/assets/Files/Games/html/1001.html"
     }
   ]
 }

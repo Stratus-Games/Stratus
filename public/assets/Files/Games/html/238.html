@@ -2,16 +2,7 @@
 <html lang="en-us">
 
 <head>
-   <meta charset="utf-8"><base href="https://cdn.jsdelivr.net/gh/GLITCHED-OVERRIDE/Stratus@main/Games/Files/Hollow Knight/">
-
-   <preload href="sharedassets5.resource" as="fetch"> 
-    <preload href="sharedassets8.resource" as="fetch"> 
-    <preload href="sharedassets13.resource" as="fetch"> 
-    <preload href="sharedassets16.resource" as="fetch">
-    <preload href="sharedassets105.resource" as="fetch">
-    <preload href="sharedassets127.resource" as="fetch">
-    <preload href="sharedassets127.resource" as="fetch">
-    <preload href="sharedassets400.resource" as="fetch">     
+   <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
    <link rel="manifest" href="manifest.json"/>
     <title>Hollow Knight</title>
@@ -38,16 +29,7 @@
 </head>
 
 <body>
-    <!-- Loading Text -->
-    <div id="loading-text" style="color: white; font-size: 48px; font-family: cursive; text-align: center; margin-top: 20px;">
-        LOADING...
-    </div>
-
-    <!-- NEW RED TEXT -->
-    <div id="loading-credit" style="color: red; font-size: 18px; font-family: cursive; text-align: center; margin-top: 5px;">
-        Upgraded By Glitch
-    </div>
-
+    <div id="loading-text" style="color: white; font-size: 48px; font-family: cursive; text-align: center; margin-top: 20px;"> LOADING... </div>
     <div hidden id="unity-container" class="unity-desktop">
         <canvas id="unity-canvas"></canvas>
         <div id="unity-loading-bar">
@@ -58,7 +40,111 @@
         </div>
         <div id="unity-mobile-warning"> WebGL builds are not supported on mobile devices. </div>
     </div>
+ <script>
+(async () => {
+  const FILES = [
+    "./sharedassets5.resource",
+    "./sharedassets8.resource",
+    "./sharedassets10.resource",
+    "./sharedassets13.resource",
+    "./sharedassets14.resource",
+    "./sharedassets16.resource",
+    "./sharedassets105.resource",
+    "./sharedassets127.resource",
+    "./sharedassets400.resource",
+    "./sharedassets410.resource",
+    "./sharedassets411.resource",
+    "./sharedassets412.resource",
+    "./sharedassets413.resource",
+    "./sharedassets414.resource",
+    "./sharedassets416.resource"
+  ];
 
+  const DB_NAME = "asset-cache";
+  const STORE_NAME = "files";
+
+  // ─── Open DB ─────────────────────────────
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 1);
+
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME);
+        }
+      };
+
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  // ─── Save ─────────────────────────────
+  function saveFile(db, key, blob) {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      tx.objectStore(STORE_NAME).put(blob, key);
+      tx.oncomplete = resolve;
+      tx.onerror = reject;
+    });
+  }
+
+  // ─── Load ─────────────────────────────
+  function getFile(db, key) {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const req = tx.objectStore(STORE_NAME).get(key);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = reject;
+    });
+  }
+
+  const db = await openDB();
+
+  // ─── Download + Cache (parallel) ─────────────────────────────
+  let completed = 0;
+
+  await Promise.all(FILES.map(async (url) => {
+    const cached = await getFile(db, url);
+    if (cached) {
+      console.log("Cached:", url);
+      completed++;
+      return;
+    }
+
+    try {
+      console.log("Downloading:", url);
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+
+      const blob = await res.blob();
+      await saveFile(db, url, blob);
+
+      completed++;
+      console.log(`Saved (${completed}/${FILES.length}):`, url);
+    } catch (e) {
+      console.warn("Failed:", url, e);
+    }
+  }));
+
+  console.log("All assets ready");
+
+  // ─── Fetch override (offline support) ─────────────────────────────
+  const originalFetch = window.fetch;
+
+  window.fetch = async function(resource, options) {
+    if (typeof resource === "string" && FILES.includes(resource)) {
+      const cached = await getFile(db, resource);
+      if (cached) {
+        return new Response(cached);
+      }
+    }
+    return originalFetch(resource, options);
+  };
+
+})();
+</script>
     <script>
         const DB_NAME = "cachedb";
         const STORE_NAME = "files";
@@ -109,10 +195,8 @@
             });
         }
     </script>
-
     <script>
         var loadingText = document.querySelector("#loading-text");
-        var loadingCredit = document.querySelector("#loading-credit");
         let totalBytes = 0;
         let loadedBytes = 0;
 
@@ -122,7 +206,10 @@
             let chunks = [];
             let received = 0;
             while (true) {
-                const { done, value } = await reader.read();
+                const {
+                    done,
+                    value
+                } = await reader.read();
                 if (done) break;
                 received += value.length;
                 loadedBytes += value.length;
@@ -139,7 +226,6 @@
             }
             return fullBuffer.buffer;
         }
-
         async function mergeFiles(fileParts, cacheKey) {
             const cached = await loadFromCache(cacheKey);
             if (cached) {
@@ -160,16 +246,13 @@
             }
             return parts;
         }
-
         (async () => {
             const [dataUrl, wasmurl] = await Promise.all([
                 mergeFiles(getParts("Build/hktruffled.data", 1, 45), "hktruffled.data"),
                 mergeFiles(getParts("Build/hktruffled.wasm", 1, 2), "hktruffled.wasm"),
             ]);
-
             var buildUrl = "Build";
             var loaderUrl = buildUrl + "/hktruffled.loader.js";
-
             var config = {
                 dataUrl: dataUrl,
                 frameworkUrl: buildUrl + "/hktruffled.framework.js",
@@ -179,15 +262,13 @@
                 productName: "Hollow Knight",
                 productVersion: "1.1",
             };
-
             var container = document.querySelector("#unity-container");
             container.hidden = false;
-
             var canvas = document.querySelector("#unity-canvas");
             var loadingBar = document.querySelector("#unity-loading-bar");
             var progressBarFull = document.querySelector("#unity-progress-bar-full");
+            var fullscreenButton = document.querySelector("#unity-fullscreen-button");
             var mobileWarning = document.querySelector("#unity-mobile-warning");
-
             if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
                 container.className = "unity-mobile";
                 config.devicePixelRatio = 1;
@@ -196,37 +277,40 @@
                     mobileWarning.style.display = "none";
                 }, 5000);
             } else {
-                function resizeCanvas() {
-                    canvas.width = window.innerWidth;
-                    canvas.height = window.innerHeight;
-                    canvas.style.width = window.innerWidth + "px";
-                    canvas.style.height = window.innerHeight + "px";
+                if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+                    var meta = document.createElement('meta');
+                    meta.name = 'viewport';
+                    meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+                    document.getElementsByTagName('head')[0].appendChild(meta);
+                    container.className = "unity-mobile";
+                    canvas.className = "unity-mobile";
+                } else {
+                    function resizeCanvas() {
+                        canvas.width = window.innerWidth;
+                        canvas.height = window.innerHeight;
+                        canvas.style.width = window.innerWidth + "px";
+                        canvas.style.height = window.innerHeight + "px";
+                    }
+                    resizeCanvas();
+                    window.addEventListener('resize', resizeCanvas);
                 }
-                resizeCanvas();
-                window.addEventListener('resize', resizeCanvas);
             }
-
             loadingBar.style.display = "block";
-
             var script = document.createElement("script");
             script.src = loaderUrl;
-
             script.onload = () => {
                 createUnityInstance(canvas, config, (progress) => {
                     progressBarFull.style.width = 100 * progress + "%";
                 }).then((unityInstance) => {
-                    // REMOVE BOTH TEXTS WHEN DONE
                     loadingText.remove();
-                    loadingCredit.remove();
-
                     loadingBar.style.display = "none";
                     canvas.style.display = "block";
                 }).catch(async (message) => {
                     await deleteFromCache("hktruffled.wasm");
                     alert(message);
                 });
-            };
 
+            };
             document.body.appendChild(script);
         })();
     </script>

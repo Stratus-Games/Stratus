@@ -257,14 +257,24 @@ body {
     <div class="control-btn" data-tooltip="Reload (R)" onclick="reloadFrame()">
       <img src="./assets/icons/reload.png">
     </div>
+    <div class="control-btn" data-tooltip="Open in New Tab (T)" onclick="openNewTab()">
+      <img src="./assets/icons/newtab.png">
+    </div>
   </div>
 
-  <div class="keyboard-hint">ESC / F / R / S</div>
+  <div class="keyboard-hint">ESC/F/R/S/T</div>
 </div>
 
 <!-- IFRAME -->
 <div class="iframe-container" id="iframeContainer">
-  <iframe id="gameFrame" src="" allow="fullscreen"></iframe>
+  <iframe
+    id="gameFrame"
+    src=""
+    allow="fullscreen *; autoplay *"
+    allowfullscreen
+    webkitallowfullscreen
+    mozallowfullscreen
+  ></iframe>
 </div>
 
 <!-- RIGHT SIDEBAR -->
@@ -298,11 +308,24 @@ function toggleSplit() {
 }
 
 function goFullscreen() {
-  const elem = document.getElementById("iframeContainer");
+  const iframe = document.getElementById("gameFrame");
+
   if (document.fullscreenElement) {
     document.exitFullscreen();
-  } else if (elem.requestFullscreen) {
-    elem.requestFullscreen();
+    return;
+  }
+
+  // Try to fullscreen the iframe first; fall back to the container
+  const target = iframe.requestFullscreen
+    ? iframe
+    : (iframe.webkitRequestFullscreen ? iframe : document.getElementById("iframeContainer"));
+
+  if (target.requestFullscreen) {
+    target.requestFullscreen().catch(() => {});
+  } else if (target.webkitRequestFullscreen) {
+    target.webkitRequestFullscreen();
+  } else if (target.mozRequestFullScreen) {
+    target.mozRequestFullScreen();
   }
 }
 
@@ -311,9 +334,45 @@ function reloadFrame() {
   iframe.src = iframe.src;
 }
 
+// Opens about:blank and writes an iframe into it pointing to the current game
+function openNewTab() {
+  const gameURL = document.getElementById("gameFrame").src;
+  if (!gameURL) return;
+
+  const tab = window.open("about:blank", "_blank");
+  if (!tab) {
+    // Popup was blocked — fallback: open the URL directly
+    window.open(gameURL, "_blank");
+    return;
+  }
+
+  tab.document.open();
+  tab.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>${document.getElementById("currentName").textContent || "Game"}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
+  iframe { width: 100%; height: 100%; border: none; display: block; }
+</style>
+</head>
+<body>
+  <iframe
+    src="${gameURL.replace(/"/g, '&quot;')}"
+    allow="fullscreen *; autoplay *"
+    allowfullscreen
+    webkitallowfullscreen
+    mozallowfullscreen
+  ></iframe>
+</body>
+</html>`);
+  tab.document.close();
+}
+
 // Keyboard shortcuts
 document.addEventListener("keydown", e => {
-  // Don't trigger if user is typing in an input
   if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
 
   switch (e.key.toLowerCase()) {
@@ -328,6 +387,9 @@ document.addEventListener("keydown", e => {
       break;
     case "s":
       toggleSplit();
+      break;
+    case "t":
+      openNewTab();
       break;
   }
 });

@@ -17,6 +17,45 @@ body {
   min-height: 100vh;
 }
 
+/* INTRO OVERLAY */
+#intro-overlay {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 10000000; /* above the nav bar */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  transition: opacity 1s ease;
+}
+
+#intro-overlay.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#intro-overlay video {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+#intro-skip {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  padding: 8px 18px;
+  border-radius: 50px;
+  border: 1px solid rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+#intro-skip:hover { background: #cc0000; border-color: #cc0000; }
+
 /* PANEL */
 .top-ui {
   padding: 160px 20px 40px;
@@ -125,6 +164,50 @@ body {
 
 <body>
 
+<!-- INTRO -->
+<div id="intro-overlay">
+  <video id="intro-video" src="./intro.mp4" playsinline preload="auto"></video>
+  <button id="intro-skip">Skip</button>
+</div>
+
+<script>
+(function () {
+  var overlay = document.getElementById('intro-overlay');
+  var video = document.getElementById('intro-video');
+  var skip = document.getElementById('intro-skip');
+
+  // Already played this session? Remove instantly (no flash).
+  var seen = false;
+  try { seen = sessionStorage.getItem('introPlayed') === '1'; } catch (e) {}
+  if (seen) { overlay.remove(); return; }
+
+  document.body.style.overflow = 'hidden';
+
+  var finished = false;
+  function finish() {
+    if (finished) return;
+    finished = true;
+    try { sessionStorage.setItem('introPlayed', '1'); } catch (e) {}
+    overlay.classList.add('fade-out');
+    document.body.style.overflow = '';
+    setTimeout(function () { overlay.remove(); }, 1100);
+  }
+
+  video.addEventListener('ended', finish);
+  video.addEventListener('error', finish); // missing/broken video -> don't trap the user
+  skip.addEventListener('click', finish);
+
+  // Try with sound first; browsers may block it, so fall back to muted.
+  var p = video.play();
+  if (p && p.catch) {
+    p.catch(function () {
+      video.muted = true;
+      video.play().catch(finish);
+    });
+  }
+})();
+</script>
+
 <!-- NAV -->
 <script>
 (function() {
@@ -215,7 +298,6 @@ body {
     if (item.icon) a.innerHTML = item.icon + item.label;
     else a.textContent = item.label;
 
-    // unchanged behavior (no popup system involved anymore)
     a.addEventListener('click', function(e) {
       e.preventDefault();
       window.location.href = item.href;
@@ -233,14 +315,9 @@ body {
   } else {
     document.addEventListener('DOMContentLoaded', mount);
   }
-
-  // ─── REMOVED ENTIRELY ───────────────────────────────────────────
-  // - goingInternal flag
-  // - beforeunload handler
-  // - external link confirmation system
-
 })();
 </script>
+
 <!-- UI -->
 <div class="top-ui">
   <div class="panel">
@@ -281,7 +358,7 @@ body {
         <p>Play sounds</p>
       </div>
 
-            <div class="tab" onclick="go('music.html')">
+      <div class="tab" onclick="go('music.html')">
         <h2>Music-Beta(buggy)</h2>
         <p>listen to music</p>
       </div>
